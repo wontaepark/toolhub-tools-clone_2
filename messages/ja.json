@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "title": "ToolHub.tools - 無料オンラインツール集",
+    "description": "ポモドーロタイマー、MBTI診断、パスワード生成器など、日常と仕事に役立つ無料オンラインツールを集めたウェブサイトです。",
+    "keywords": "無料ツール,オンラインツール,ポモドーロ,MBTI,パスワード生成器,単位変換器,日付計算機"
+  },
+  "common": {
+    "home": "ホーム",
+    "tools": "ツール",
+    "about": "概要",
+    "contact": "お問い合わせ",
+    "sitemap": "サイトマップ",
+    "privacy": "プライバシーポリシー",
+    "terms": "利用規約",
+    "darkMode": "ダークモード",
+    "lightMode": "ライトモード",
+    "systemMode": "システムモード",
+    "toggleTheme": "テーマ切り替え"
+  },
+  "home": {
+    "title": "ToolHub.tools - 無料ウェブツール集",
+    "description": "ポモドーロタイマー、MBTI診断、パスワード生成器など、日常や仕事に必要な様々なツールを無料で提供します。",
+    "hero": {
+      "title": "日常と仕事のための無料ウェブツール集",
+      "subtitle": "ポモドーロタイマー、MBTI診断、単位変換器など便利なツールを一箇所で",
+      "cta": "今すぐ人気ツールを使用する"
+    },
+    "stats": {
+      "users": "ユーザー",
+      "monthlyUsage": "月間使用回数",
+      "satisfaction": "満足度"
+    },
+    "toolCategories": {
+      "productivity": "生産性",
+      "personality": "性格診断",
+      "utilities": "ユーティリティ",
+      "entertainment": "エンターテインメント"
+    }
+  },
+  "tools": {
+    "pomodoro": {
+      "name": "ポモドーロタイマー",
+      "description": "25分集中＋5分休憩で生産性を向上させる時間管理テクニック",
+      "shortDesc": "生産性向上のための時間管理ツール"
+    },
+    "mbti": {
+      "name": "MBTI性格診断",
+      "description": "16種類の性格タイプであなたの性格を知る心理学ベースの診断",
+      "shortDesc": "あなたの性格タイプを見つける心理診断"
+    },
+    "password-generator": {
+      "name": "パスワード生成器",
+      "description": "安全で強力なパスワードを自動生成するセキュリティツール",
+      "shortDesc": "安全なパスワード生成ツール"
+    },
+    "unit-converter": {
+      "name": "単位変換器",
+      "description": "長さ、重さ、温度、面積など様々な単位を簡単に変換する計算ツール",
+      "shortDesc": "様々な単位変換計算機"
+    },
+    "date-calculator": {
+      "name": "日付計算機",
+      "description": "二つの日付間の差を計算し、日付演算を支援する便利なツール",
+      "shortDesc": "日付差計算および日付演算ツール"
+    },
+    "thumbnail-downloader": {
+      "name": "YouTubeサムネイルダウンローダー",
+      "description": "YouTube動画のサムネイル画像を高画質でダウンロードするツール",
+      "shortDesc": "YouTubeサムネイル画像ダウンロード"
+    },
+    "number-raffle": {
+      "name": "番号抽選器",
+      "description": "公正なランダム番号抽選で抽選イベントやゲームに活用するツール",
+      "shortDesc": "公正なランダム番号抽選ツール"
+    },
+    "timer": {
+      "name": "範囲タイマー",
+      "description": "希望の時間を設定して使用するシンプルで便利なタイマー",
+      "shortDesc": "カスタム時間設定タイマー"
+    },
+    "teto-egen": {
+      "name": "テト-エゲン性格診断",
+      "description": "話題のミームベース性格タイプ診断で楽しくあなたの性向を知る",
+      "shortDesc": "ミームベースの楽しい性格診断"
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 ToolHub.tools. 全ての権利を保有しています。",
+    "popularTools": "人気ツール"
+  }
+}

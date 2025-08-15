@@ -1,0 +1,91 @@
+{
+  "meta": {
+    "title": "ToolHub.tools - Free Online Tools Collection",
+    "description": "Free online tools including Pomodoro Timer, MBTI Test, Password Generator and more utilities for daily life and work productivity.",
+    "keywords": "free tools,online tools,pomodoro,MBTI,password generator,unit converter,date calculator"
+  },
+  "common": {
+    "home": "Home",
+    "tools": "Tools",
+    "about": "About",
+    "contact": "Contact",
+    "sitemap": "Sitemap",
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "darkMode": "Dark Mode",
+    "lightMode": "Light Mode",
+    "systemMode": "System Mode",
+    "toggleTheme": "Toggle Theme"
+  },
+  "home": {
+    "title": "ToolHub.tools - Free Web Tools Collection",
+    "description": "Free online tools including Pomodoro Timer, MBTI Test, Password Generator and more utilities for daily use and work.",
+    "hero": {
+      "title": "Free Web Tools Collection for Daily Life and Work",
+      "subtitle": "Pomodoro Timer, MBTI Test, Unit Converter and more useful tools in one place",
+      "cta": "Start Using Popular Tools Now"
+    },
+    "stats": {
+      "users": "Users",
+      "monthlyUsage": "Monthly Usage",
+      "satisfaction": "Satisfaction"
+    },
+    "toolCategories": {
+      "productivity": "Productivity",
+      "personality": "Personality Tests",
+      "utilities": "Utilities",
+      "entertainment": "Entertainment"
+    }
+  },
+  "tools": {
+    "pomodoro": {
+      "name": "Pomodoro Timer",
+      "description": "25 minutes focus + 5 minutes break time management technique to boost productivity",
+      "shortDesc": "Time management tool for productivity enhancement"
+    },
+    "mbti": {
+      "name": "MBTI Personality Test",
+      "description": "Psychology-based test to discover your personality type among 16 different types",
+      "shortDesc": "Psychological test to find your personality type"
+    },
+    "password-generator": {
+      "name": "Password Generator",
+      "description": "Security tool that automatically generates safe and strong passwords",
+      "shortDesc": "Secure password generation tool"
+    },
+    "unit-converter": {
+      "name": "Unit Converter",
+      "description": "Calculation tool to easily convert various units like length, weight, temperature, area",
+      "shortDesc": "Various unit conversion calculator"
+    },
+    "date-calculator": {
+      "name": "Date Calculator",
+      "description": "Useful tool to calculate differences between two dates and perform date operations",
+      "shortDesc": "Date difference calculation and date operation tool"
+    },
+    "thumbnail-downloader": {
+      "name": "YouTube Thumbnail Downloader",
+      "description": "Tool to download YouTube video thumbnail images in high quality",
+      "shortDesc": "YouTube thumbnail image downloader"
+    },
+    "number-raffle": {
+      "name": "Number Raffle",
+      "description": "Fair random number draw tool for lottery events and games",
+      "shortDesc": "Fair random number drawing tool"
+    },
+    "timer": {
+      "name": "Range Timer",
+      "description": "Simple and useful timer with custom time settings",
+      "shortDesc": "Customizable time setting timer"
+    },
+    "teto-egen": {
+      "name": "Teto-Egen Personality Test",
+      "description": "Trending meme-based personality type test to discover your tendencies in a fun way",
+      "shortDesc": "Meme-based fun personality test"
+    }
+  },
+  "footer": {
+    "copyright": "© 2025 ToolHub.tools. All rights reserved.",
+    "popularTools": "Popular Tools"
+  }
+}
