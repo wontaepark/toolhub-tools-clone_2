@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
@@ -11,11 +11,11 @@ export function ThemeToggle() {
   const [mounted, setMounted] = useState(false);
 
   // 실제 적용될 테마 계산
-  const getActualTheme = (): 'light' | 'dark' => {
+  const getActualTheme = useCallback((): 'light' | 'dark' => {
     return theme;
-  };
+  }, [theme]);
 
-  const isDark = getActualTheme() === 'dark';
+
 
   // 테마 변경 함수
   const updateTheme = (newTheme: Theme) => {
@@ -41,7 +41,7 @@ export function ThemeToggle() {
     
     root.setAttribute('data-theme', actualTheme);
     root.classList.toggle('dark', actualTheme === 'dark');
-  }, [theme]);
+  }, [theme, getActualTheme]);
 
   // 초기화
   useEffect(() => {

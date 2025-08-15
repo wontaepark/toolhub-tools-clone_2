@@ -15,14 +15,13 @@ import {
   HelpCircle, 
   Lightbulb,
   ChevronLeft,
-  ChevronRight,
   Brain,
   Star,
   Heart,
   Target
 } from 'lucide-react';
 import Link from 'next/link';
-import { questions, mbtiResults, type Question, type MBTIResult } from '@/lib/mbti-data';
+import { questions, mbtiResults, type MBTIResult } from '@/lib/mbti-data';
 
 interface TestStyle {
   id: string;

@@ -5,13 +5,13 @@ import { NextIntlClientProvider } from 'next-intl';
 interface IntlProviderProps {
   children: React.ReactNode;
   locale: string;
-  messages: any;
+  messages: Record<string, unknown>;
 }
 
 export default function IntlProvider({ children, locale, messages }: IntlProviderProps) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-      {children as any}
+      {children}
     </NextIntlClientProvider>
   );
 }

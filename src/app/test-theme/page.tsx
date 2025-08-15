@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,9 +13,9 @@ export default function TestThemePage() {
   const [mounted, setMounted] = useState(false);
 
   // 실제 적용될 테마 계산
-  const getActualTheme = (): 'light' | 'dark' => {
+  const getActualTheme = useCallback((): 'light' | 'dark' => {
     return theme;
-  };
+  }, [theme]);
 
   const isDark = getActualTheme() === 'dark';
 
@@ -37,7 +37,7 @@ export default function TestThemePage() {
     
     root.setAttribute('data-theme', actualTheme);
     root.classList.toggle('dark', actualTheme === 'dark');
-  }, [theme]);
+  }, [theme, getActualTheme]);
 
   // 초기화
   useEffect(() => {
@@ -102,7 +102,7 @@ export default function TestThemePage() {
               <div className="text-center p-4 bg-gray-100 dark:bg-gray-700 rounded-lg">
                 <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">CSS 변수</div>
                 <div className="text-sm font-mono text-gray-900 dark:text-white">
-                  data-theme="{isDark ? 'dark' : 'light'}"
+                  data-theme=&quot;{isDark ? 'dark' : 'light'}&quot;
                 </div>
               </div>
             </div>

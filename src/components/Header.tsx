@@ -2,8 +2,6 @@ import Link from 'next/link';
 import { ThemeToggle } from './ThemeToggle';
 import {
   Home,
-  Map,
-  MessageCircle,
   Github,
   Search,
   ChevronDown,

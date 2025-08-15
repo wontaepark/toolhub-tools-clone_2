@@ -13,14 +13,12 @@ import {
   Users, 
   Star, 
   BookOpen, 
-  CheckCircle, 
   HelpCircle, 
   Lightbulb,
-  ChevronLeft,
-  ChevronRight
+  ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
-import { questions, results, type Question, type TestResult } from '@/lib/teto-egen-data';
+import { questions, results, type TestResult } from '@/lib/teto-egen-data';
 
 export default function TetoEgenPage() {
   const [step, setStep] = useState<'gender' | 'test' | 'result'>('gender');
