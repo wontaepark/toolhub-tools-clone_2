@@ -29,6 +29,26 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
+# ToolHub.tools Clone
+
+ToolHub.tools 웹사이트의 완전한 클론 프로젝트입니다.
+
+## 구현된 기능
+- 🎯 9가지 도구 카드 레이아웃
+- 🧠 MBTI 성격유형 테스트
+- 🐕 테토-애견 성격유형 테스트
+- 🌙 다크/라이트 모드 토글
+- 📱 반응형 디자인
+
+## 기술 스택
+- HTML5, CSS3, JavaScript
+- Responsive Design
+- Modern Web Standards
+
+## 배포
+- [Live Demo](배포된-URL)
+- [Original Site](https://toolhub.tools)
+
 ## Deploy on Vercel
 
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
