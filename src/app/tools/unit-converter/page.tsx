@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowUpDown, Star, Clock, Ruler, Weight, Thermometer, Droplets, Square, Zap } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Star, Ruler, Weight, Thermometer, Droplets, Square, Zap } from 'lucide-react';
 
 // 단위 변환 데이터
 const unitCategories = {

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Copy, RefreshCw, Eye, EyeOff, Check, Shield, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Copy, RefreshCw, Eye, EyeOff, Check, Shield, Info } from 'lucide-react';
 
 interface PasswordHistory {
   id: number;

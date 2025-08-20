@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Calendar, Clock, Plus, Minus, Star, RotateCcw, Copy, Check } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Plus, Minus, Star, Copy, Check } from 'lucide-react';
 
 interface DateCalculation {
   id: number;
@@ -84,7 +84,7 @@ export default function DateCalculator() {
     if (!baseDate || !amount) return;
 
     const base = new Date(baseDate);
-    let resultDate = new Date(base);
+    const resultDate = new Date(base);
 
     switch (unit) {
       case 'days':

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Play, Pause, RotateCcw, Settings, Plus, Square, Trash2, Check, ChevronDown, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Play, Pause, RotateCcw, Settings, Plus, Square, Trash2, Check, Volume2, VolumeX } from 'lucide-react';
 
 export default function PomodoroTimer() {
   // 타이머 상태
@@ -117,7 +117,7 @@ export default function PomodoroTimer() {
     if (soundEnabled) {
       try {
         if (typeof window !== 'undefined') {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
           
           // 더 좋은 알림음 생성
           for (let i = 0; i < 3; i++) {

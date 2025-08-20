@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, RotateCcw, Share2, Heart, Star, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowRight, RotateCcw, Heart, Star, Sparkles } from 'lucide-react';
 import { questions, results, type Question, type TestResult } from '@/lib/teto-egen-data';
 
 type Answer = 'T' | 'E'; // T: 테토, E: 에겐

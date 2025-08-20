@@ -103,7 +103,7 @@ export default function Timer() {
     if (soundEnabled) {
       try {
         if (typeof window !== 'undefined') {
-          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          const audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
           
           // 3번 반복하는 알림음
           for (let i = 0; i < 3; i++) {

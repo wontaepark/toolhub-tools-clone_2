@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Copy, Check, Youtube, Image, Star, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Check, Youtube, Image, Star, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface ThumbnailInfo {
   id: string;

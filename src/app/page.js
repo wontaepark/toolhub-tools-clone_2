@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { Github, Twitter, Mail } from 'lucide-react';
 
 export default function HomePage() {
@@ -87,7 +88,7 @@ export default function HomePage() {
               <div className="text-center lg:text-left">
                 <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-6">미션</h2>
                 <h3 className="text-xl font-semibold text-blue-600 dark:text-blue-400 mb-6">
-                  "복잡한 도구는 이제 그만, 간단하고 효과적인 웹 도구로 모든 사람의 일상을 편리하게"
+                  &quot;복잡한 도구는 이제 그만, 간단하고 효과적인 웹 도구로 모든 사람의 일상을 편리하게&quot;
                 </h3>
                 <p className="text-gray-600 dark:text-gray-300 leading-relaxed">
                   현대인들은 다양한 계산, 시간 관리, 변환 작업 등을 위해 여러 애플리케이션을 설치하고 관리해야 하는 번거로움을 겪고 있습니다. 
@@ -472,11 +473,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 25분 집중 + 5분 휴식으로 생산성을 높이세요
               </p>
-              <a href="/tools/pomodoro" className="block">
-                <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  사용하기
-                </button>
-              </a>
+                              <Link href="/tools/pomodoro" className="block">
+                  <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
+                    사용하기
+                  </button>
+                </Link>
             </div>
 
             {/* MBTI Test */}
@@ -493,11 +494,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 16가지 성격 유형 중 나의 유형을 찾아보세요
               </p>
-              <a href="/tools/mbti" className="block">
-                <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  사용하기
-                </button>
-              </a>
+                              <Link href="/tools/mbti" className="block">
+                  <button className="w-full bg-purple-600 hover:bg-purple-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
+                    사용하기
+                  </button>
+                </Link>
             </div>
 
             {/* Password Generator */}
@@ -514,11 +515,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 안전하고 복잡한 비밀번호를 자동으로 생성합니다
               </p>
-              <a href="/tools/password-generator" className="block">
-                <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  사용하기
-                </button>
-              </a>
+                              <Link href="/tools/password-generator" className="block">
+                  <button className="w-full bg-green-600 hover:bg-green-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
+                    사용하기
+                  </button>
+                </Link>
             </div>
 
             {/* Unit Converter */}
@@ -535,11 +536,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 길이, 무게, 온도 등 다양한 단위를 변환하세요
               </p>
-              <a href="/tools/unit-converter" className="block">
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
-                  사용하기
-                </button>
-              </a>
+                              <Link href="/tools/unit-converter" className="block">
+                  <button className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
+                    사용하기
+                  </button>
+                </Link>
             </div>
 
             {/* Date Calculator */}
@@ -556,11 +557,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 날짜 간격 계산과 특정 날짜 찾기를 도와드립니다
               </p>
-              <a href="/tools/date-calculator" className="block">
+              <Link href="/tools/date-calculator" className="block">
                 <button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
                   사용하기
                 </button>
-              </a>
+              </Link>
             </div>
 
             {/* Number Raffle */}
@@ -577,11 +578,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 공정하고 재미있는 번호 추첨을 도와드립니다
               </p>
-              <a href="/tools/number-raffle" className="block">
+              <Link href="/tools/number-raffle" className="block">
                 <button className="w-full bg-pink-600 hover:bg-pink-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
                   사용하기
                 </button>
-              </a>
+              </Link>
             </div>
 
             {/* Thumbnail Downloader */}
@@ -598,11 +599,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 YouTube 동영상의 고화질 썸네일 이미지를 다운로드하세요
               </p>
-              <a href="/tools/thumbnail-downloader" className="block">
+              <Link href="/tools/thumbnail-downloader" className="block">
                 <button className="w-full bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
                   사용하기
                 </button>
-              </a>
+              </Link>
             </div>
 
             {/* Timer */}
@@ -619,11 +620,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 원하는 시간을 자유롭게 설정할 수 있는 카운트다운 타이머
               </p>
-              <a href="/tools/timer" className="block">
+              <Link href="/tools/timer" className="block">
                 <button className="w-full bg-cyan-600 hover:bg-cyan-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
                   사용하기
                 </button>
-              </a>
+              </Link>
             </div>
 
             {/* Teto-Egen Test */}
@@ -640,11 +641,11 @@ export default function HomePage() {
               <p className="text-gray-600 dark:text-gray-300 text-sm mb-4">
                 화제의 테토-에겐 테스트! 나는 테토? 아니면 에겐?
               </p>
-              <a href="/tools/teto-egen" className="block">
+              <Link href="/tools/teto-egen" className="block">
                 <button className="w-full bg-yellow-600 hover:bg-yellow-700 text-white py-2 px-4 rounded-lg text-sm font-medium transition-colors duration-200">
                   사용하기
                 </button>
-              </a>
+              </Link>
             </div>
 
           </div>
@@ -683,14 +684,14 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">인기 도구</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="/tools/pomodoro" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/pomodoro" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     포모도로 타이머
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/tools/thumbnail-downloader" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/thumbnail-downloader" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     썸네일 다운로더
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -700,14 +701,14 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">도구</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="/tools/number-raffle" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/number-raffle" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     번호 추첨기
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/tools/mbti" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/mbti" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     MBTI 테스트
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -717,14 +718,14 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">유틸리티</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="/tools/password-generator" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/password-generator" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     Password Generator
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/tools/timer" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/timer" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     범용 타이머
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
@@ -734,14 +735,14 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">계산기</h3>
               <ul className="space-y-3">
                 <li>
-                  <a href="/tools/unit-converter" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/unit-converter" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     Unit Converter
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/tools/date-calculator" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/tools/date-calculator" className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     날짜 계산기
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </div>
