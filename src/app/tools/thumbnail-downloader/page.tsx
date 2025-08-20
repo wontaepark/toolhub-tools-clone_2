@@ -1,104 +1,64 @@
 'use client';
 
-import React, { useState } from 'react';
-import ToolLayout from '@/components/ToolLayout';
-import { AdBannerInline } from '@/components/AdBanner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Download, Youtube, AlertCircle, CheckCircle, Copy } from 'lucide-react';
-import { getRelatedTools } from '@/lib/tools';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Download, Copy, Check, Youtube, Image, Star, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
 
-interface ThumbnailData {
-  videoId: string;
+interface ThumbnailInfo {
+  id: string;
   title: string;
+  channel: string;
   thumbnails: {
-    quality: string;
-    url: string;
-    width: number;
-    height: number;
-  }[];
+    default: string;
+    medium: string;
+    high: string;
+    standard: string;
+    maxres: string;
+  };
+  url: string;
+  timestamp: Date;
 }
 
-export default function ThumbnailDownloaderPage() {
-  const [url, setUrl] = useState('');
-  const [thumbnailData, setThumbnailData] = useState<ThumbnailData | null>(null);
+interface DownloadHistory {
+  id: number;
+  videoId: string;
+  title: string;
+  quality: string;
+  timestamp: Date;
+}
+
+export default function ThumbnailDownloader() {
+  const [youtubeUrl, setYoutubeUrl] = useState('');
+  const [thumbnailInfo, setThumbnailInfo] = useState<ThumbnailInfo | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [copiedUrl, setCopiedUrl] = useState('');
-
-  // 관련 도구 가져오기
-  const relatedTools = getRelatedTools('thumbnail-downloader').map(tool => ({
-    id: tool.id,
-    name: tool.name.ko,
-    emoji: tool.emoji,
-    href: `/tools/${tool.id}`
-  }));
+  const [copied, setCopied] = useState('');
+  const [downloadHistory, setDownloadHistory] = useState<DownloadHistory[]>([]);
+  const [favorites, setFavorites] = useState<string[]>([]);
 
   // YouTube URL에서 비디오 ID 추출
   const extractVideoId = (url: string): string | null => {
-    const regex = /(?:youtube\.com\/(?:[^\/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?\/\s]{11})/;
-    const match = url.match(regex);
-    return match ? match[1] : null;
-  };
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
 
-  // YouTube URL 유효성 검사
-  // const isValidYouTubeUrl = (url: string): boolean => {
-  //   return extractVideoId(url) !== null;
-  // };
-
-  // 썸네일 데이터 생성
-  const generateThumbnailData = (videoId: string): ThumbnailData => {
-    const baseUrl = `https://img.youtube.com/vi/${videoId}`;
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
     
-    return {
-      videoId,
-      title: `YouTube Video ${videoId}`,
-      thumbnails: [
-        {
-          quality: 'Maximum Quality',
-          url: `${baseUrl}/maxresdefault.jpg`,
-          width: 1280,
-          height: 720
-        },
-        {
-          quality: 'High Quality',
-          url: `${baseUrl}/hqdefault.jpg`,
-          width: 480,
-          height: 360
-        },
-        {
-          quality: 'Medium Quality',
-          url: `${baseUrl}/mqdefault.jpg`,
-          width: 320,
-          height: 180
-        },
-        {
-          quality: 'Standard Definition',
-          url: `${baseUrl}/sddefault.jpg`,
-          width: 640,
-          height: 480
-        },
-        {
-          quality: 'Default',
-          url: `${baseUrl}/default.jpg`,
-          width: 120,
-          height: 90
-        }
-      ]
-    };
+    return null;
   };
 
-  // 썸네일 가져오기
-  const handleGetThumbnails = async () => {
-    if (!url.trim()) {
+  // 썸네일 정보 가져오기
+  const fetchThumbnailInfo = async () => {
+    if (!youtubeUrl.trim()) {
       setError('YouTube URL을 입력해주세요.');
       return;
     }
 
-    const videoId = extractVideoId(url);
+    const videoId = extractVideoId(youtubeUrl);
     if (!videoId) {
       setError('올바른 YouTube URL을 입력해주세요.');
       return;
@@ -106,254 +66,412 @@ export default function ThumbnailDownloaderPage() {
 
     setIsLoading(true);
     setError('');
-    
+
     try {
-      // 실제 API 호출 대신 클라이언트에서 썸네일 URL 생성
-      const data = generateThumbnailData(videoId);
-      setThumbnailData(data);
-    } catch {
-      setError('썸네일을 가져오는 중 오류가 발생했습니다.');
+      // YouTube 썸네일 URL 생성 (공개 API 없이도 가능)
+      const thumbnails = {
+        default: `https://img.youtube.com/vi/${videoId}/default.jpg`,
+        medium: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg`,
+        high: `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`,
+        standard: `https://img.youtube.com/vi/${videoId}/sddefault.jpg`,
+        maxres: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+      };
+
+      // 썸네일 정보 설정
+      setThumbnailInfo({
+        id: videoId,
+        title: `YouTube 비디오 (${videoId})`,
+        channel: '채널 정보',
+        thumbnails,
+        url: youtubeUrl,
+        timestamp: new Date()
+      });
+
+    } catch (err) {
+      setError('썸네일을 가져오는데 실패했습니다.');
     } finally {
       setIsLoading(false);
     }
   };
 
   // 썸네일 다운로드
-  const handleDownload = async (thumbnailUrl: string, quality: string) => {
+  const downloadThumbnail = async (quality: keyof ThumbnailInfo['thumbnails'], filename: string) => {
+    if (!thumbnailInfo) return;
+
     try {
-      const response = await fetch(thumbnailUrl);
+      const response = await fetch(thumbnailInfo.thumbnails[quality]);
       const blob = await response.blob();
       
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `youtube-thumbnail-${quality.replace(/\s+/g, '-').toLowerCase()}-${thumbnailData?.videoId}.jpg`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${filename}_${quality}.jpg`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch {
-      alert('다운로드 중 오류가 발생했습니다.');
+
+      // 히스토리에 추가
+      const newDownload: DownloadHistory = {
+        id: Date.now(),
+        videoId: thumbnailInfo.id,
+        title: thumbnailInfo.title,
+        quality,
+        timestamp: new Date()
+      };
+      
+      setDownloadHistory(prev => [newDownload, ...prev.slice(0, 19)]);
+
+    } catch (err) {
+      console.error('다운로드 실패:', err);
+      alert('다운로드에 실패했습니다.');
     }
   };
 
   // URL 복사
-  const copyUrl = async (thumbnailUrl: string) => {
+  const copyUrl = async (url: string, quality: string) => {
     try {
-      await navigator.clipboard.writeText(thumbnailUrl);
-      setCopiedUrl(thumbnailUrl);
-      setTimeout(() => setCopiedUrl(''), 2000);
-    } catch {
-      // 복사 실패시 fallback
-      const textArea = document.createElement('textarea');
-      textArea.value = thumbnailUrl;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-      setCopiedUrl(thumbnailUrl);
-      setTimeout(() => setCopiedUrl(''), 2000);
+      await navigator.clipboard.writeText(url);
+      setCopied(quality);
+      setTimeout(() => setCopied(''), 2000);
+    } catch (err) {
+      console.error('복사 실패:', err);
     }
   };
 
-  // 입력 필드 초기화
-  const handleReset = () => {
-    setUrl('');
-    setThumbnailData(null);
-    setError('');
-    setCopiedUrl('');
+  // 즐겨찾기 토글
+  const toggleFavorite = () => {
+    if (!thumbnailInfo) return;
+
+    const exists = favorites.includes(thumbnailInfo.id);
+    if (exists) {
+      setFavorites(favorites.filter(id => id !== thumbnailInfo.id));
+    } else {
+      setFavorites([thumbnailInfo.id, ...favorites.slice(0, 9)]);
+    }
+  };
+
+  // Enter 키 처리
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      fetchThumbnailInfo();
+    }
+  };
+
+  const isFavorite = thumbnailInfo && favorites.includes(thumbnailInfo.id);
+
+  // 썸네일 품질 정보
+  const qualityInfo = {
+    default: { name: '기본', size: '120×90', description: '가장 작은 크기' },
+    medium: { name: '중간', size: '320×180', description: '일반적인 크기' },
+    high: { name: '고화질', size: '480×360', description: '고화질 썸네일' },
+    standard: { name: '표준', size: '640×480', description: '표준 해상도' },
+    maxres: { name: '최고화질', size: '1280×720', description: '최고 해상도' }
   };
 
   return (
-    <>
-      
-      <ToolLayout
-        title="유튜브 썸네일 다운로더"
-        description="YouTube 동영상 썸네일을 고화질로 다운로드"
-        category="media"
-        relatedTools={relatedTools}
-      >
-        {/* URL 입력 섹션 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Youtube className="w-5 h-5 mr-2" />
-              YouTube URL 입력
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="youtube-url">YouTube 동영상 URL</Label>
-              <Input
-                id="youtube-url"
-                type="url"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://www.youtube.com/watch?v=... 또는 https://youtu.be/..."
-                className="mt-1"
-                onKeyPress={(e) => e.key === 'Enter' && handleGetThumbnails()}
-              />
-              <p className="text-sm text-gray-600 mt-1">
-                지원 형식: youtube.com/watch?v=..., youtu.be/..., youtube.com/embed/...
-              </p>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>돌아가기</span>
+            </Link>
+            
+            <h1 className="text-xl font-bold text-white">
+              YouTube 썸네일 다운로더
+            </h1>
+            
+            <div className="w-20"></div>
+          </div>
+        </div>
+      </header>
+
+      {/* 메인 설명 */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2">YouTube 썸네일 다운로더</h2>
+          <p className="text-gray-400">YouTube 동영상의 고화질 썸네일 이미지를 다양한 해상도로 다운로드할 수 있습니다.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* 왼쪽: 메인 다운로더 */}
+          <div className="lg:col-span-2">
+            
+            {/* URL 입력 */}
+            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 mb-6">
+              <h3 className="text-lg font-bold mb-6 text-center">YouTube URL 입력</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-3">
+                    YouTube 동영상 URL
+                  </label>
+                  <div className="flex space-x-3">
+                    <input
+                      type="text"
+                      value={youtubeUrl}
+                      onChange={(e) => setYoutubeUrl(e.target.value)}
+                      onKeyPress={handleKeyPress}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="flex-1 bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white"
+                    />
+                    <button
+                      onClick={fetchThumbnailInfo}
+                      disabled={isLoading}
+                      className={`px-6 py-3 rounded-lg font-medium transition-colors ${
+                        isLoading
+                          ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                          : 'bg-red-600 hover:bg-red-700 text-white'
+                      }`}
+                    >
+                      {isLoading ? '로딩...' : '가져오기'}
+                    </button>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="flex items-center space-x-2 p-3 bg-red-900/20 border border-red-800/30 rounded-lg">
+                    <AlertCircle className="h-4 w-4 text-red-400" />
+                    <span className="text-red-300 text-sm">{error}</span>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {error && (
-              <div className="flex items-center p-3 bg-red-50 dark:bg-red-900/20 text-red-700 dark:text-red-400 rounded-lg">
-                <AlertCircle className="w-5 h-5 mr-2" />
-                {error}
+            {/* 썸네일 미리보기 및 다운로드 */}
+            {thumbnailInfo && (
+              <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
+                
+                {/* 비디오 정보 */}
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center space-x-3">
+                    <Youtube className="h-6 w-6 text-red-500" />
+                    <div>
+                      <div className="font-semibold text-white">{thumbnailInfo.title}</div>
+                      <div className="text-sm text-gray-400">비디오 ID: {thumbnailInfo.id}</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex space-x-2">
+                    <button
+                      onClick={toggleFavorite}
+                      className={`p-2 rounded-lg transition-colors ${
+                        isFavorite
+                          ? 'bg-yellow-600 text-white'
+                          : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                      }`}
+                    >
+                      <Star className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    </button>
+                    
+                    <a
+                      href={thumbnailInfo.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                    >
+                      <ExternalLink className="h-4 w-4 text-gray-300" />
+                    </a>
+                  </div>
+                </div>
+
+                {/* 썸네일 그리드 */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {Object.entries(qualityInfo).map(([quality, info]) => (
+                    <div key={quality} className="bg-gray-700 rounded-lg p-4 border border-gray-600">
+                      
+                      {/* 썸네일 이미지 */}
+                      <div className="relative mb-4">
+                        <img
+                          src={thumbnailInfo.thumbnails[quality as keyof typeof thumbnailInfo.thumbnails]}
+                          alt={`${info.name} 썸네일`}
+                          className="w-full rounded-lg border border-gray-600"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).style.display = 'none';
+                          }}
+                        />
+                        <div className="absolute top-2 right-2 bg-black/70 text-white text-xs px-2 py-1 rounded">
+                          {info.size}
+                        </div>
+                      </div>
+
+                      {/* 품질 정보 */}
+                      <div className="mb-4">
+                        <div className="font-semibold text-white mb-1">{info.name}</div>
+                        <div className="text-sm text-gray-400">{info.description}</div>
+                        <div className="text-xs text-gray-500 mt-1">해상도: {info.size}</div>
+                      </div>
+
+                      {/* 액션 버튼 */}
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => downloadThumbnail(
+                            quality as keyof ThumbnailInfo['thumbnails'], 
+                            `youtube_${thumbnailInfo.id}`
+                          )}
+                          className="flex-1 flex items-center justify-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-3 rounded-lg text-sm font-medium transition-colors"
+                        >
+                          <Download className="h-4 w-4" />
+                          <span>다운로드</span>
+                        </button>
+                        
+                        <button
+                          onClick={() => copyUrl(
+                            thumbnailInfo.thumbnails[quality as keyof typeof thumbnailInfo.thumbnails], 
+                            quality
+                          )}
+                          className={`p-2 rounded-lg transition-colors ${
+                            copied === quality
+                              ? 'bg-green-600 text-white'
+                              : 'bg-gray-600 hover:bg-gray-700 text-gray-300'
+                          }`}
+                        >
+                          {copied === quality ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 
-            <div className="flex space-x-2">
-              <Button 
-                onClick={handleGetThumbnails}
-                disabled={isLoading || !url.trim()}
-                className="flex-1 bg-red-600 hover:bg-red-700"
-              >
-                {isLoading ? (
-                  <>
-                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
-                    처리 중...
-                  </>
-                ) : (
-                  <>
-                    <Download className="w-4 h-4 mr-2" />
-                    썸네일 가져오기
-                  </>
-                )}
-              </Button>
-              {(thumbnailData || error) && (
-                <Button 
-                  onClick={handleReset}
-                  variant="outline"
-                >
-                  초기화
-                </Button>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 썸네일 결과 */}
-        {thumbnailData && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center">
-                <CheckCircle className="w-5 h-5 mr-2 text-green-600" />
-                썸네일 다운로드
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="mb-4 p-3 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                <div className="flex items-center mb-2">
-                  <Badge variant="outline" className="mr-2">Video ID</Badge>
-                  <span className="font-mono text-sm">{thumbnailData.videoId}</span>
+            {/* 다운로드 히스토리 */}
+            {downloadHistory.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h3 className="text-lg font-bold mb-4">다운로드 히스토리</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {downloadHistory.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <Image className="h-5 w-5 text-blue-400" />
+                        <div>
+                          <div className="text-sm text-white truncate max-w-xs">{item.title}</div>
+                          <div className="text-xs text-gray-400">
+                            {item.quality} 품질 · {item.timestamp.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setYoutubeUrl(`https://www.youtube.com/watch?v=${item.videoId}`);
+                          fetchThumbnailInfo();
+                        }}
+                        className="text-gray-400 hover:text-white transition-colors text-sm"
+                      >
+                        다시 다운로드
+                      </button>
+                    </div>
+                  ))}
                 </div>
               </div>
+            )}
+          </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {thumbnailData.thumbnails.map((thumbnail, index) => (
-                  <div
-                    key={index}
-                    className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                  >
-                    <div className="aspect-video bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={thumbnail.url}
-                        alt={`${thumbnail.quality} 썸네일`}
-                        className="max-w-full max-h-full object-contain"
-                        onError={(e) => {
-                          (e.target as HTMLImageElement).src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><rect width="320" height="180" fill="%23f3f4f6"/><text x="160" y="90" text-anchor="middle" fill="%236b7280">이미지 없음</text></svg>';
-                        }}
-                      />
-                    </div>
-                    <div className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <div>
-                          <h3 className="font-semibold">{thumbnail.quality}</h3>
-                          <p className="text-sm text-gray-600">
-                            {thumbnail.width} × {thumbnail.height}
-                          </p>
-                        </div>
-                        <Badge variant="secondary">
-                          JPG
-                        </Badge>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <Button
-                          onClick={() => handleDownload(thumbnail.url, thumbnail.quality)}
-                          size="sm"
-                          className="flex-1 bg-blue-600 hover:bg-blue-700"
-                        >
-                          <Download className="w-4 h-4 mr-2" />
-                          다운로드
-                        </Button>
-                        <Button
-                          onClick={() => copyUrl(thumbnail.url)}
-                          size="sm"
-                          variant="outline"
-                          className={copiedUrl === thumbnail.url ? 'text-green-600' : ''}
-                        >
-                          <Copy className="w-4 h-4" />
-                          {copiedUrl === thumbnail.url ? '복사됨' : 'URL'}
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 광고 */}
-        <AdBannerInline />
-
-        {/* 사용법 안내 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>사용법 및 안내</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-3">📱 지원하는 URL 형식</h4>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• https://www.youtube.com/watch?v=VIDEO_ID</li>
-                  <li>• https://youtu.be/VIDEO_ID</li>
-                  <li>• https://youtube.com/embed/VIDEO_ID</li>
-                  <li>• https://m.youtube.com/watch?v=VIDEO_ID</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-3">🖼️ 썸네일 품질</h4>
-                <ul className="text-sm text-gray-600 space-y-2">
-                  <li>• <strong>Maximum Quality:</strong> 1280×720 (HD)</li>
-                  <li>• <strong>High Quality:</strong> 480×360</li>
-                  <li>• <strong>Medium Quality:</strong> 320×180</li>
-                  <li>• <strong>Standard:</strong> 640×480</li>
-                  <li>• <strong>Default:</strong> 120×90</li>
-                </ul>
-              </div>
-            </div>
+          {/* 오른쪽: 즐겨찾기 및 정보 */}
+          <div className="space-y-6">
             
-            <div className="mt-6 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-              <h4 className="font-semibold mb-2 flex items-center">
-                <AlertCircle className="w-4 h-4 mr-2" />
-                주의사항
-              </h4>
-              <ul className="text-sm text-gray-700 dark:text-gray-300 space-y-1">
-                <li>• 다운로드한 썸네일의 저작권은 원본 동영상 제작자에게 있습니다</li>
-                <li>• 상업적 용도로 사용하기 전에 저작권자의 허가를 받으세요</li>
-                <li>• 일부 비공개 동영상의 썸네일은 접근이 제한될 수 있습니다</li>
-              </ul>
+            {/* 즐겨찾기 */}
+            {favorites.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <Star className="h-5 w-5 text-yellow-500 mr-2 fill-current" />
+                  즐겨찾기
+                </h3>
+                <div className="space-y-2">
+                  {favorites.map((videoId, index) => (
+                    <div key={index} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-2">
+                        <Youtube className="h-4 w-4 text-red-500" />
+                        <span className="text-sm text-white font-mono">{videoId}</span>
+                      </div>
+                      <div className="flex space-x-1">
+                        <button
+                          onClick={() => {
+                            setYoutubeUrl(`https://www.youtube.com/watch?v=${videoId}`);
+                            fetchThumbnailInfo();
+                          }}
+                          className="p-1 text-gray-400 hover:text-white transition-colors"
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </button>
+                        <button
+                          onClick={() => setFavorites(favorites.filter(id => id !== videoId))}
+                          className="p-1 text-gray-400 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="h-3 w-3" />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 빠른 예시 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-bold mb-4">빠른 테스트</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setYoutubeUrl('https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+                    setTimeout(fetchThumbnailInfo, 100);
+                  }}
+                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  <div className="text-sm text-white">예시 동영상 1</div>
+                  <div className="text-xs text-gray-400">인기 뮤직비디오</div>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    setYoutubeUrl('https://youtu.be/jNQXAC9IVRw');
+                    setTimeout(fetchThumbnailInfo, 100);
+                  }}
+                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  <div className="text-sm text-white">예시 동영상 2</div>
+                  <div className="text-xs text-gray-400">짧은 URL 형식</div>
+                </button>
+              </div>
             </div>
-          </CardContent>
-        </Card>
-      </ToolLayout>
-    </>
+
+            {/* 지원 형식 */}
+            <div className="bg-red-900/20 rounded-lg p-6 border border-red-800/30">
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <Youtube className="h-5 w-5 text-red-400 mr-2" />
+                지원 형식
+              </h3>
+              <div className="space-y-2 text-sm text-red-300">
+                <div>• youtube.com/watch?v=VIDEO_ID</div>
+                <div>• youtu.be/VIDEO_ID</div>
+                <div>• youtube.com/embed/VIDEO_ID</div>
+                <div>• 모든 해상도 (120×90 ~ 1280×720)</div>
+              </div>
+            </div>
+
+            {/* 사용 가이드 */}
+            <div className="bg-blue-900/20 rounded-lg p-6 border border-blue-800/30">
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <Image className="h-5 w-5 text-blue-400 mr-2" />
+                사용 가이드
+              </h3>
+              <div className="space-y-2 text-sm text-blue-300">
+                <div>1. YouTube 동영상 URL을 복사해서 붙여넣기</div>
+                <div>2. "가져오기" 버튼 클릭 또는 Enter 키</div>
+                <div>3. 원하는 해상도의 썸네일 선택</div>
+                <div>4. "다운로드" 버튼으로 이미지 저장</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

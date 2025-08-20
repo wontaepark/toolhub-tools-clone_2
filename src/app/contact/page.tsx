@@ -106,16 +106,16 @@ export default function ContactPage() {
                   <div className="flex items-center space-x-3">
                     <Mail className="w-5 h-5 text-blue-600" />
                     <div>
-                      <div className="font-semibold">이메일</div>
-                      <div className="text-sm text-gray-600">contact@toolhub.tools</div>
+                      <div className="font-semibold text-gray-900 dark:text-white">이메일</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">contact@toolhub.tools</div>
                     </div>
                   </div>
                   
                   <div className="flex items-center space-x-3">
                     <Github className="w-5 h-5 text-gray-900 dark:text-white" />
                     <div>
-                      <div className="font-semibold">GitHub</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="font-semibold text-gray-900 dark:text-white">GitHub</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         <a 
                           href="https://github.com/toolhub-tools" 
                           target="_blank" 
@@ -131,8 +131,8 @@ export default function ContactPage() {
                   <div className="flex items-center space-x-3">
                     <Globe className="w-5 h-5 text-green-600" />
                     <div>
-                      <div className="font-semibold">웹사이트</div>
-                      <div className="text-sm text-gray-600">
+                      <div className="font-semibold text-gray-900 dark:text-white">웹사이트</div>
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         <a 
                           href="https://toolhub.tools" 
                           className="text-blue-600 hover:underline"
@@ -156,8 +156,8 @@ export default function ContactPage() {
                       <div key={category.value} className="flex items-center space-x-3">
                         <span className="text-lg">{category.icon}</span>
                         <div>
-                          <div className="font-medium">{category.label}</div>
-                          <div className="text-sm text-gray-600">
+                          <div className="font-medium text-gray-900 dark:text-white">{category.label}</div>
+                          <div className="text-sm text-gray-600 dark:text-gray-300">
                             {category.value === 'bug' && '오류나 버그를 발견했을 때'}
                             {category.value === 'feature' && '새로운 기능을 제안하고 싶을 때'}
                             {category.value === 'support' && '도구 사용법이나 기능에 대한 질문'}
@@ -207,7 +207,7 @@ export default function ContactPage() {
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="name">이름 *</Label>
+                        <Label htmlFor="name" className="text-gray-900 dark:text-white">이름 *</Label>
                         <Input
                           id="name"
                           type="text"
@@ -215,11 +215,11 @@ export default function ContactPage() {
                           onChange={(e) => handleInputChange('name', e.target.value)}
                           placeholder="홍길동"
                           required
-                          className="mt-1"
+                          className="mt-1 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
                         />
                       </div>
                       <div>
-                        <Label htmlFor="email">이메일 *</Label>
+                        <Label htmlFor="email" className="text-gray-900 dark:text-white">이메일 *</Label>
                         <Input
                           id="email"
                           type="email"
@@ -227,20 +227,20 @@ export default function ContactPage() {
                           onChange={(e) => handleInputChange('email', e.target.value)}
                           placeholder="example@email.com"
                           required
-                          className="mt-1"
+                          className="mt-1 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
                         />
                       </div>
                     </div>
 
                     <div>
-                      <Label htmlFor="category">문의 카테고리 *</Label>
+                      <Label htmlFor="category" className="text-gray-900 dark:text-white">문의 카테고리 *</Label>
                       <Select value={form.category} onValueChange={(value) => handleInputChange('category', value)}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 text-gray-900 dark:text-white">
                           <SelectValue placeholder="문의 카테고리를 선택해주세요" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="text-gray-900 dark:text-white">
                           {categories.map((category) => (
-                            <SelectItem key={category.value} value={category.value}>
+                            <SelectItem key={category.value} value={category.value} className="text-gray-900 dark:text-white">
                               <div className="flex items-center space-x-2">
                                 <span>{category.icon}</span>
                                 <span>{category.label}</span>
@@ -252,20 +252,20 @@ export default function ContactPage() {
                     </div>
 
                     <div>
-                      <Label htmlFor="subject">제목 *</Label>
-                      <Input
-                        id="subject"
-                        type="text"
-                        value={form.subject}
-                        onChange={(e) => handleInputChange('subject', e.target.value)}
-                        placeholder={form.category ? `${getCategoryIcon(form.category)} 제목을 입력해주세요` : '제목을 입력해주세요'}
-                        required
-                        className="mt-1"
-                      />
+                      <Label htmlFor="subject" className="text-gray-900 dark:text-white">제목 *</Label>
+                                              <Input
+                          id="subject"
+                          type="text"
+                          value={form.subject}
+                          onChange={(e) => handleInputChange('subject', e.target.value)}
+                          placeholder={form.category ? `${getCategoryIcon(form.category)} 제목을 입력해주세요` : '제목을 입력해주세요'}
+                          required
+                          className="mt-1 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
+                        />
                     </div>
 
                     <div>
-                      <Label htmlFor="message">내용 *</Label>
+                      <Label htmlFor="message" className="text-gray-900 dark:text-white">내용 *</Label>
                       <Textarea
                         id="message"
                         value={form.message}
@@ -273,12 +273,12 @@ export default function ContactPage() {
                         placeholder="문의 내용을 자세히 작성해주세요. 버그 신고의 경우 재현 방법을 포함해주시면 도움이 됩니다."
                         required
                         rows={8}
-                        className="mt-1"
+                        className="mt-1 placeholder:text-gray-500 dark:placeholder:text-gray-400 text-gray-900 dark:text-white"
                       />
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <div className="text-sm text-gray-600">
+                      <div className="text-sm text-gray-600 dark:text-gray-300">
                         <span className="text-red-500">*</span> 필수 입력 항목
                       </div>
                       <Button
@@ -311,20 +311,20 @@ export default function ContactPage() {
                 <CardContent>
                   <div className="space-y-4">
                     <div>
-                      <h4 className="font-semibold mb-1">Q. 모든 도구가 무료인가요?</h4>
-                      <p className="text-sm text-gray-600">네, ToolHub.tools의 모든 도구는 완전 무료로 제공됩니다.</p>
+                      <h4 className="font-semibold mb-1 text-gray-900 dark:text-white">Q. 모든 도구가 무료인가요?</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">네, ToolHub.tools의 모든 도구는 완전 무료로 제공됩니다.</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Q. 개인정보는 어떻게 보호되나요?</h4>
-                      <p className="text-sm text-gray-600">저희는 사용자의 개인정보를 수집하지 않으며, 모든 계산은 브라우저에서 이루어집니다.</p>
+                      <h4 className="font-semibold mb-1 text-gray-900 dark:text-white">Q. 개인정보는 어떻게 보호되나요?</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">저희는 사용자의 개인정보를 수집하지 않으며, 모든 계산은 브라우저에서 이루어집니다.</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Q. 새로운 도구 추가 요청은 어떻게 하나요?</h4>
-                      <p className="text-sm text-gray-600">&apos;기능 제안&apos; 카테고리로 문의해주시면 검토 후 추가를 고려해드립니다.</p>
+                      <h4 className="font-semibold mb-1 text-gray-900 dark:text-white">Q. 새로운 도구 추가 요청은 어떻게 하나요?</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">&apos;기능 제안&apos; 카테고리로 문의해주시면 검토 후 추가를 고려해드립니다.</p>
                     </div>
                     <div>
-                      <h4 className="font-semibold mb-1">Q. 모바일에서도 사용할 수 있나요?</h4>
-                      <p className="text-sm text-gray-600">네, 모든 도구는 모바일 친화적으로 설계되어 스마트폰과 태블릿에서도 완벽하게 작동합니다.</p>
+                      <h4 className="font-semibold mb-1 text-gray-900 dark:text-white">Q. 모바일에서도 사용할 수 있나요?</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">네, 모든 도구는 모바일 친화적으로 설계되어 스마트폰과 태블릿에서도 완벽하게 작동합니다.</p>
                     </div>
                   </div>
                 </CardContent>

@@ -1,188 +1,192 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  RotateCcw, 
-  Share2, 
-  Heart, 
-  Users, 
-  Star, 
-  BookOpen, 
-  HelpCircle, 
-  Lightbulb,
-  ChevronLeft
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { questions, results, type TestResult } from '@/lib/teto-egen-data';
+import { ArrowLeft, ArrowRight, RotateCcw, Share2, Heart, Star, Sparkles } from 'lucide-react';
+import { questions, results, type Question, type TestResult } from '@/lib/teto-egen-data';
 
-export default function TetoEgenPage() {
-  const [step, setStep] = useState<'gender' | 'test' | 'result'>('gender');
-  const [gender, setGender] = useState<'male' | 'female' | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+type Answer = 'T' | 'E'; // T: 테토, E: 에겐
+
+export default function TetoEgenTest() {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, { weight: Answer, intensity: number }>>({});
+  const [gender, setGender] = useState<'male' | 'female'>('female');
+  const [isComplete, setIsComplete] = useState(false);
   const [result, setResult] = useState<TestResult | null>(null);
+  const [showIntro, setShowIntro] = useState(true);
 
-  const progress = step === 'test' ? ((currentQuestion + 1) / questions.length) * 100 : 0;
+  const totalQuestions = questions.length;
+  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
 
-  const handleGenderSelect = (selectedGender: 'male' | 'female') => {
-    setGender(selectedGender);
-    setStep('test');
-  };
-
-  const handleAnswer = (optionIndex: number) => {
-    const newAnswers = { ...answers, [currentQuestion]: optionIndex };
-    setAnswers(newAnswers);
-
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      calculateResult(newAnswers);
-    }
-  };
-
-  const calculateResult = (finalAnswers: Record<number, number>) => {
+  // 테토-에겐 결과 계산
+  const calculateResult = () => {
     let tetoScore = 0;
     let egenScore = 0;
 
-    questions.forEach((question, index) => {
-      const answerIndex = finalAnswers[index];
-      if (answerIndex !== undefined) {
-        const selectedOption = question.options[answerIndex];
-        if (selectedOption.weight === 'T') {
-          tetoScore += selectedOption.intensity;
-        } else {
-          egenScore += selectedOption.intensity;
-        }
+    Object.values(answers).forEach(answer => {
+      if (answer.weight === 'T') {
+        tetoScore += answer.intensity;
+      } else {
+        egenScore += answer.intensity;
       }
     });
 
-    let resultType: string;
+    // 성별과 점수에 따라 결과 결정
+    let resultType: keyof typeof results;
+    
     if (tetoScore > egenScore) {
       resultType = gender === 'male' ? 'TETO_MALE' : 'TETO_FEMALE';
     } else {
       resultType = gender === 'male' ? 'EGEN_MALE' : 'EGEN_FEMALE';
     }
 
-    setResult(results[resultType]);
-    setStep('result');
+    return results[resultType];
   };
 
-  const resetTest = () => {
-    setStep('gender');
-    setGender(null);
-    setCurrentQuestion(0);
+  // 답변 선택
+  const selectAnswer = (optionIndex: number) => {
+    const question = questions[currentQuestionIndex];
+    const selectedOption = question.options[optionIndex];
+    
+    setAnswers({ 
+      ...answers, 
+      [question.id]: { 
+        weight: selectedOption.weight, 
+        intensity: selectedOption.intensity 
+      }
+    });
+    
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      }, 300);
+    } else {
+      // 테스트 완료
+      setTimeout(() => {
+        const testResult = calculateResult();
+        setResult(testResult);
+        setIsComplete(true);
+      }, 300);
+    }
+  };
+
+  // 이전 질문으로
+  const goToPrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  // 테스트 다시 시작
+  const restartTest = () => {
+    setCurrentQuestionIndex(0);
     setAnswers({});
+    setIsComplete(false);
+    setResult(null);
+    setShowIntro(true);
+  };
+
+  // 테스트 시작
+  const startTest = () => {
+    setShowIntro(false);
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setIsComplete(false);
     setResult(null);
   };
 
-  const shareResult = () => {
-    if (result) {
-      const text = `${result.shareText} ToolHub.tools에서 테스트해보세요!`;
-      const url = 'https://toolhub.tools/tools/teto-egen';
-      
-      if (navigator.share) {
-        navigator.share({
-          title: '테토-애겐 테스트 결과',
-          text: text,
-          url: url
-        });
-      } else {
-        navigator.clipboard.writeText(`${text} ${url}`);
-        alert('결과가 클립보드에 복사되었습니다!');
-      }
-    }
-  };
-
-  const prevQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    }
-  };
-
-  // 성별 선택 화면
-  if (step === 'gender') {
+  if (showIntro) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-12">
-            <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-400 mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              홈으로 돌아가기
-            </Link>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-red-600 to-pink-600 bg-clip-text text-transparent mb-4">
-              테토-애겐 성격유형 테스트
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              화제의 테토-애겐 테스트! 당신은 테토형인가요, 애겐형인가요? 
-              성별을 선택하고 테스트를 시작해보세요.
-            </p>
-          </div>
-
-          {/* 성별 선택 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
-            <Card
-              className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-red-300 text-center"
-              onClick={() => handleGenderSelect('male')}
-            >
-              <CardHeader>
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white text-2xl">
-                    👨
-                  </div>
-                </div>
-                <CardTitle className="text-2xl">남성</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">남성용 테토-애겐 테스트를 시작합니다</p>
-              </CardContent>
-            </Card>
-
-            <Card
-              className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-pink-300 text-center"
-              onClick={() => handleGenderSelect('female')}
-            >
-              <CardHeader>
-                <div className="flex justify-center mb-4">
-                  <div className="w-20 h-20 bg-gradient-to-r from-pink-500 to-pink-600 rounded-full flex items-center justify-center text-white text-2xl">
-                    👩
-                  </div>
-                </div>
-                <CardTitle className="text-2xl">여성</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-gray-600">여성용 테토-애겐 테스트를 시작합니다</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* 특징 설명 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Heart className="h-8 w-8 text-red-600" />
-              </div>
-              <h3 className="font-semibold mb-2">테토형</h3>
-              <p className="text-gray-600 text-sm">애교 많고 표현력 풍부한 사랑둥이 타입</p>
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link 
+                href="/"
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>돌아가기</span>
+              </Link>
+              
+              <h1 className="text-xl font-bold text-white">
+                테토-에겐 성격 테스트
+              </h1>
+              
+              <div className="w-20"></div>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-pink-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Star className="h-8 w-8 text-pink-600" />
+          </div>
+        </header>
+
+        {/* 인트로 화면 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="mb-8">
+              <div className="w-24 h-24 bg-gradient-to-br from-pink-500 to-yellow-500 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-3xl">⭐</span>
               </div>
-              <h3 className="font-semibold mb-2">애겐형</h3>
-              <p className="text-gray-600 text-sm">차분하고 신중한 깊이 있는 타입</p>
+              <h2 className="text-4xl font-bold mb-4">
+                <span className="text-pink-400">테토</span>
+                <span className="text-gray-400"> vs </span>
+                <span className="text-yellow-400">에겐</span>
+              </h2>
+              <p className="text-gray-400 text-lg">
+                화제의 성격 유형 테스트! 나는 테토일까 에겐일까?
+              </p>
             </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-rose-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-rose-600" />
+
+            {/* 성별 선택 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+              <h3 className="text-lg font-bold mb-4">성별을 선택해주세요</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  onClick={() => setGender('male')}
+                  className={`p-4 rounded-lg border transition-all ${
+                    gender === 'male' 
+                      ? 'bg-blue-600 border-blue-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">👨</div>
+                  <div className="font-semibold">남성</div>
+                </button>
+                
+                <button
+                  onClick={() => setGender('female')}
+                  className={`p-4 rounded-lg border transition-all ${
+                    gender === 'female' 
+                      ? 'bg-pink-600 border-pink-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="text-2xl mb-2">👩</div>
+                  <div className="font-semibold">여성</div>
+                </button>
               </div>
-              <h3 className="font-semibold mb-2">궁합 분석</h3>
-              <p className="text-gray-600 text-sm">테토형과 애겐형의 완벽한 궁합 분석</p>
+            </div>
+
+            {/* 테스트 설명 */}
+            <div className="bg-gradient-to-r from-pink-900/20 to-yellow-900/20 rounded-lg p-6 border border-pink-800/30 mb-8">
+              <h3 className="text-lg font-bold mb-3">✨ 테토-에겐 테스트란?</h3>
+              <div className="text-sm text-gray-300 space-y-2">
+                <p>• <strong className="text-pink-400">테토</strong>: 활발하고 애교 많은 성격</p>
+                <p>• <strong className="text-yellow-400">에겐</strong>: 차분하고 쿨한 성격</p>
+                <p>• 총 10개의 질문으로 당신의 성격을 분석합니다</p>
+                <p>• 연애 스타일과 궁합까지 알려드려요!</p>
+              </div>
+            </div>
+
+            <button
+              onClick={startTest}
+              className="bg-gradient-to-r from-pink-600 to-yellow-600 hover:from-pink-700 hover:to-yellow-700 text-white px-8 py-4 rounded-lg font-medium text-lg transition-all transform hover:scale-105"
+            >
+              테스트 시작하기 ✨
+            </button>
+
+            <div className="mt-8 text-sm text-gray-400">
+              <p>• 솔직하게 답변할수록 정확한 결과를 얻을 수 있어요</p>
+              <p>• 테스트는 약 2-3분 소요됩니다</p>
             </div>
           </div>
         </div>
@@ -190,204 +194,280 @@ export default function TetoEgenPage() {
     );
   }
 
-  // 테스트 진행 화면
-  if (step === 'test') {
-    const currentQ = questions[currentQuestion];
-    
+  if (isComplete && result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" onClick={resetTest} className="text-gray-600">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                성별 선택으로
-              </Button>
-              <div className="text-sm text-gray-500">
-                {currentQuestion + 1} / {questions.length}
-              </div>
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link 
+                href="/"
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>돌아가기</span>
+              </Link>
+              
+              <h1 className="text-xl font-bold text-white">
+                테토-에겐 테스트 결과
+              </h1>
+              
+              <button
+                onClick={restartTest}
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>다시 테스트</span>
+              </button>
             </div>
-            <Progress value={progress} className="h-2 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              테토-애겐 성격유형 테스트
-            </h2>
           </div>
+        </header>
 
-          {/* 질문 카드 */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl text-center">
-                {currentQ?.text}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {currentQ?.options.map((option, index) => (
-                  <Button
-                    key={index}
-                    onClick={() => handleAnswer(index)}
-                    className="w-full h-16 text-lg bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white"
-                  >
-                    {option.text}
-                  </Button>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 네비게이션 */}
-          <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={prevQuestion}
-              disabled={currentQuestion === 0}
-            >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              이전
-            </Button>
-            <Button
-              variant="outline"
-              onClick={resetTest}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              다시 시작
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // 결과 화면
-  if (step === 'result' && result) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-red-50 via-pink-50 to-rose-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-8">
-            <Button variant="ghost" onClick={resetTest} className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              다시 테스트하기
-            </Button>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">테스트 결과</h1>
-          </div>
-
-          {/* 결과 카드 */}
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              <div className="mb-4">
-                <div className="text-6xl mb-4">{result.emoji}</div>
-                <Badge className="text-lg px-4 py-2 bg-gradient-to-r from-red-600 to-pink-600 text-white">
+        {/* 결과 화면 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* 메인 결과 */}
+            <div className="text-center mb-12">
+              <div className="text-6xl mb-6">{result.emoji}</div>
+              <h2 className="text-5xl font-bold mb-4">
+                <span className={result.type.includes('TETO') ? 'text-pink-400' : 'text-yellow-400'}>
                   {result.title}
-                </Badge>
+                </span>
+              </h2>
+              <p className="text-2xl text-gray-400 mb-6">{result.subtitle}</p>
+              <div className="text-lg text-gray-300 max-w-2xl mx-auto leading-relaxed">
+                {result.description}
               </div>
-              <CardTitle className="text-2xl mb-2">{result.subtitle}</CardTitle>
-              <p className="text-gray-600">{result.description}</p>
-            </CardHeader>
-            <CardContent>
-              {/* 성향 점수 */}
-              <div className="text-center mb-6">
-                <div className="text-sm text-gray-600 mb-1">이 유형의 분포</div>
-                <div className="text-2xl font-bold text-red-600">{result.percentage}%</div>
-              </div>
+            </div>
 
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
               {/* 성격 특성 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">성격 특성</h3>
-                <div className="flex flex-wrap gap-2">
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <Sparkles className="h-5 w-5 text-purple-500 mr-2" />
+                  성격 특성
+                </h3>
+                <div className="space-y-3">
                   {result.personality.map((trait, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {trait}
-                    </Badge>
+                    <div key={index} className="flex items-center space-x-3">
+                      <div className={`w-3 h-3 rounded-full ${
+                        result.type.includes('TETO') ? 'bg-pink-500' : 'bg-yellow-500'
+                      }`}></div>
+                      <span className="text-gray-300">{trait}</span>
+                    </div>
                   ))}
                 </div>
               </div>
 
               {/* 연애 스타일 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">연애 스타일</h3>
-                <p className="text-gray-600">{result.loveStyle}</p>
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <Heart className="h-5 w-5 text-red-500 mr-2" />
+                  연애 스타일
+                </h3>
+                <p className="text-gray-300 leading-relaxed">
+                  {result.loveStyle}
+                </p>
               </div>
 
               {/* 궁합 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-green-600">최고 궁합</h3>
-                  <div className="flex items-center space-x-2">
-                    <Heart className="h-5 w-5 text-green-600" />
-                    <span className="text-lg font-medium">{result.compatibility.best}</span>
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <Star className="h-5 w-5 text-yellow-500 mr-2" />
+                  궁합
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">최고 궁합</span>
+                    <span className="text-green-400 font-semibold">{result.compatibility.best}</span>
                   </div>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-red-600">피해야 할 궁합</h3>
-                  <div className="flex items-center space-x-2">
-                    <HelpCircle className="h-5 w-5 text-red-600" />
-                    <span className="text-lg font-medium">{result.compatibility.avoid}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-400">피해야 할 상대</span>
+                    <span className="text-red-400 font-semibold">{result.compatibility.avoid}</span>
                   </div>
                 </div>
               </div>
 
-              {/* 액션 버튼 */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={shareResult} className="flex-1 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  결과 공유하기
-                </Button>
-                <Button variant="outline" onClick={resetTest} className="flex-1">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  다시 테스트하기
-                </Button>
+              {/* 비율 */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4">전체 비율</h3>
+                <div className="text-center">
+                  <div className="text-3xl font-bold mb-2">{result.percentage}%</div>
+                  <div className="text-gray-400 text-sm">
+                    {result.type.includes('TETO') ? '테토' : '에겐'} 성향을 가진 사람들의 비율
+                  </div>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
 
-          {/* 추가 정보 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Lightbulb className="h-5 w-5 text-yellow-600" />
-                  <CardTitle className="text-lg">테토-애겐이란?</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  최근 소셜미디어에서 화제가 되고 있는 성격유형 테스트로, 테토형과 애겐형으로 나누어 분석합니다.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg">궁합 분석</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  테토형과 애겐형의 특성을 바탕으로 한 정확한 궁합 분석을 제공합니다.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="h-5 w-5 text-green-600" />
-                  <CardTitle className="text-lg">성격 분석</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  각 유형별 상세한 성격 특성과 연애 스타일을 분석하여 제공합니다.
-                </p>
-              </CardContent>
-            </Card>
+            {/* 다른 유형들 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-8">
+              <h3 className="text-lg font-bold mb-4">다른 유형들도 궁금하다면?</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {Object.entries(results).map(([key, resultType]) => (
+                  <div 
+                    key={key}
+                    className={`p-4 rounded-lg border text-center transition-all ${
+                      result.type === key
+                        ? 'bg-purple-600 border-purple-500 text-white'
+                        : 'bg-gray-700 border-gray-600 text-gray-300'
+                    }`}
+                  >
+                    <div className="text-2xl mb-2">{resultType.emoji}</div>
+                    <div className="font-semibold text-sm">{resultType.title}</div>
+                    <div className="text-xs opacity-70 mt-1">{resultType.percentage}%</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* 액션 버튼 */}
+            <div className="flex justify-center space-x-4 mt-8">
+              <button
+                onClick={restartTest}
+                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>다시 테스트</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: result.shareText,
+                      text: `${result.description}`,
+                      url: window.location.href
+                    });
+                  } else {
+                    navigator.clipboard.writeText(result.shareText);
+                    alert('결과가 클립보드에 복사되었습니다!');
+                  }
+                }}
+                className="flex items-center space-x-2 bg-gradient-to-r from-pink-600 to-yellow-600 hover:from-pink-700 hover:to-yellow-700 text-white px-6 py-3 rounded-lg font-medium transition-all"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>결과 공유</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  return null;
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>돌아가기</span>
+            </Link>
+            
+            <h1 className="text-xl font-bold text-white">
+              테토-에겐 성격 테스트
+            </h1>
+            
+            <button
+              onClick={restartTest}
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>처음부터</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 진행률 바 */}
+      <div className="bg-gray-800 border-b border-gray-700">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">
+              질문 {currentQuestionIndex + 1} / {totalQuestions}
+            </span>
+            <span className="text-sm text-gray-400">
+              {Math.round(progress)}% 완료
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-pink-500 to-yellow-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 질문 화면 */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="max-w-2xl mx-auto">
+          
+          {/* 질문 */}
+          <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 mb-8">
+            <h2 className="text-2xl font-bold text-center mb-8">
+              {questions[currentQuestionIndex].text}
+            </h2>
+
+            {/* 답변 선택지 */}
+            <div className="space-y-4">
+              {questions[currentQuestionIndex].options.map((option, index) => (
+                <button
+                  key={index}
+                  onClick={() => selectAnswer(index)}
+                  className={`w-full p-6 rounded-lg border transition-all text-left hover:bg-gray-700 ${
+                    option.weight === 'T'
+                      ? 'bg-pink-600/10 border-pink-600/30 hover:border-pink-500/50'
+                      : 'bg-yellow-600/10 border-yellow-600/30 hover:border-yellow-500/50'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-white">{option.text}</span>
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
+                      option.weight === 'T' ? 'bg-pink-500' : 'bg-yellow-500'
+                    }`}>
+                      {option.weight}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 네비게이션 */}
+          <div className="flex justify-between">
+            <button
+              onClick={goToPrevious}
+              disabled={currentQuestionIndex === 0}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                currentQuestionIndex === 0
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              <span>이전</span>
+            </button>
+
+            <div className="text-center">
+              <div className="text-sm text-gray-400">
+                답변을 선택하면 자동으로 다음 질문으로 넘어갑니다
+              </div>
+            </div>
+
+            <div className="w-20"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }

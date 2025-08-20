@@ -1,512 +1,548 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import ToolLayout from '@/components/ToolLayout';
-import { AdBannerInline } from '@/components/AdBanner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Badge } from '@/components/ui/badge';
-import { Calendar, Clock, Plus, Minus, Calculator } from 'lucide-react';
-import { calculateDateDifference, isValidDate, subtractDaysFromDate, calculateAge } from '@/utils/calculation';
-import { getRelatedTools } from '@/lib/tools';
+import { useState, useEffect } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Calendar, Clock, Plus, Minus, Star, RotateCcw, Copy, Check } from 'lucide-react';
 
-interface DateCalculationHistory {
-  id: string;
-  type: 'difference' | 'add' | 'subtract' | 'age';
-  input: string;
+interface DateCalculation {
+  id: number;
+  type: 'difference' | 'add' | 'subtract';
+  startDate: string;
+  endDate?: string;
+  amount?: number;
+  unit?: string;
   result: string;
-  timestamp: number;
+  timestamp: Date;
 }
 
-export default function DateCalculatorPage() {
-  const [activeTab, setActiveTab] = useState('difference');
+export default function DateCalculator() {
+  // 계산 모드
+  const [mode, setMode] = useState<'difference' | 'add' | 'subtract'>('difference');
   
-  // 날짜 차이 계산
+  // 날짜 간격 계산
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [dateDifference, setDateDifference] = useState<{
-    days: number;
-    weeks: number;
-    months: number;
-    years: number;
-  } | null>(null);
-
+  
   // 날짜 더하기/빼기
   const [baseDate, setBaseDate] = useState('');
-  const [daysToAdd, setDaysToAdd] = useState('');
-  const [calculatedDate, setCalculatedDate] = useState('');
+  const [amount, setAmount] = useState(1);
+  const [unit, setUnit] = useState('days');
+  
+  // 결과 및 기타
+  const [result, setResult] = useState('');
+  const [detailedResult, setDetailedResult] = useState('');
+  const [copied, setCopied] = useState(false);
+  const [favorites, setFavorites] = useState<DateCalculation[]>([]);
+  const [recentCalculations, setRecentCalculations] = useState<DateCalculation[]>([]);
 
-  // 나이 계산
-  const [birthDate, setBirthDate] = useState('');
-  const [ageResult, setAgeResult] = useState<{
-    years: number;
-    months: number;
-    days: number;
-    totalDays: number;
-  } | null>(null);
-
-  // 히스토리
-  const [history, setHistory] = useState<DateCalculationHistory[]>([]);
-
-  // 관련 도구 가져오기
-  const relatedTools = getRelatedTools('date-calculator').map(tool => ({
-    id: tool.id,
-    name: tool.name.ko,
-    emoji: tool.emoji,
-    href: `/tools/${tool.id}`
-  }));
-
-  // localStorage에서 히스토리 불러오기
+  // 오늘 날짜로 초기화
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedHistory = localStorage.getItem('date-calculator-history');
-      if (savedHistory) {
-        setHistory(JSON.parse(savedHistory));
-      }
-
-      // 오늘 날짜로 초기화
-      const today = new Date().toISOString().split('T')[0];
-      setEndDate(today);
-      setBaseDate(today);
-    }
+    const today = new Date().toISOString().split('T')[0];
+    setStartDate(today);
+    setEndDate(today);
+    setBaseDate(today);
   }, []);
 
-  // 히스토리를 localStorage에 저장
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('date-calculator-history', JSON.stringify(history));
-    }
-  }, [history]);
-
-  // 히스토리에 추가
-  const addToHistory = (type: DateCalculationHistory['type'], input: string, result: string) => {
-    const newItem: DateCalculationHistory = {
-      id: Date.now().toString(),
-      type,
-      input,
-      result,
-      timestamp: Date.now()
-    };
-    setHistory(prev => [newItem, ...prev].slice(0, 20));
-  };
-
-  // 날짜 차이 계산
+  // 날짜 간격 계산
   const calculateDifference = () => {
     if (!startDate || !endDate) return;
+
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = Math.abs(end.getTime() - start.getTime());
     
-    if (!isValidDate(startDate) || !isValidDate(endDate)) {
-      alert('올바른 날짜를 입력해주세요.');
-      return;
-    }
-
-    try {
-      const start = new Date(startDate);
-      const end = new Date(endDate);
-      const difference = calculateDateDifference(start, end);
-      setDateDifference(difference);
-      
-      addToHistory(
-        'difference',
-        `${startDate} ~ ${endDate}`,
-        `${difference.days}일 (${difference.years}년 ${difference.months}개월)`
-      );
-    } catch {
-      alert('날짜 계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 날짜 더하기
-  const addDays = () => {
-    if (!baseDate || !daysToAdd) return;
+    const days = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diffTime % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diffTime % (1000 * 60 * 60)) / (1000 * 60));
     
-    if (!isValidDate(baseDate)) {
-      alert('올바른 날짜를 입력해주세요.');
-      return;
-    }
-
-    const days = parseInt(daysToAdd);
-    if (isNaN(days)) {
-      alert('올바른 숫자를 입력해주세요.');
-      return;
-    }
-
-    try {
-      const date = new Date(baseDate);
-      date.setDate(date.getDate() + days);
-      const result = date.toISOString().split('T')[0];
-      setCalculatedDate(result);
-      
-      addToHistory(
-        'add',
-        `${baseDate} + ${days}일`,
-        result
-      );
-    } catch {
-      alert('날짜 계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 날짜 빼기
-  const subtractDays = () => {
-    if (!baseDate || !daysToAdd) return;
+    const years = Math.floor(days / 365);
+    const months = Math.floor((days % 365) / 30);
+    const remainingDays = days % 30;
     
-    if (!isValidDate(baseDate)) {
-      alert('올바른 날짜를 입력해주세요.');
-      return;
-    }
+    const weeks = Math.floor(days / 7);
+    const weekDays = days % 7;
 
-    const days = parseInt(daysToAdd);
-    if (isNaN(days)) {
-      alert('올바른 숫자를 입력해주세요.');
-      return;
-    }
+    setResult(`${days}일`);
+    setDetailedResult(
+      `${days}일 (${years}년 ${months}개월 ${remainingDays}일)\n` +
+      `${weeks}주 ${weekDays}일\n` +
+      `${hours}시간 ${minutes}분\n` +
+      `${days.toLocaleString()}일`
+    );
 
-    try {
-      const result = subtractDaysFromDate(baseDate, days);
-      setCalculatedDate(result);
-      
-      addToHistory(
-        'subtract',
-        `${baseDate} - ${days}일`,
-        result
-      );
-    } catch {
-      alert('날짜 계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 나이 계산
-  const calculateAgeResult = () => {
-    if (!birthDate) return;
-    
-    if (!isValidDate(birthDate)) {
-      alert('올바른 생년월일을 입력해주세요.');
-      return;
-    }
-
-    try {
-      const age = calculateAge(birthDate);
-      setAgeResult(age);
-      
-      addToHistory(
-        'age',
-        birthDate,
-        `${age.years}세 ${age.months}개월 ${age.days}일 (총 ${age.totalDays}일)`
-      );
-    } catch {
-      alert('나이 계산 중 오류가 발생했습니다.');
-    }
-  };
-
-  // 날짜 포맷팅
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'long'
+    // 히스토리에 추가
+    addToHistory({
+      type: 'difference',
+      startDate,
+      endDate,
+      result: `${days}일`,
     });
   };
 
+  // 날짜 더하기/빼기
+  const calculateAddSubtract = () => {
+    if (!baseDate || !amount) return;
+
+    const base = new Date(baseDate);
+    let resultDate = new Date(base);
+
+    switch (unit) {
+      case 'days':
+        resultDate.setDate(base.getDate() + (mode === 'add' ? amount : -amount));
+        break;
+      case 'weeks':
+        resultDate.setDate(base.getDate() + (mode === 'add' ? amount * 7 : -amount * 7));
+        break;
+      case 'months':
+        resultDate.setMonth(base.getMonth() + (mode === 'add' ? amount : -amount));
+        break;
+      case 'years':
+        resultDate.setFullYear(base.getFullYear() + (mode === 'add' ? amount : -amount));
+        break;
+    }
+
+    const resultDateStr = resultDate.toISOString().split('T')[0];
+    const dayOfWeek = resultDate.toLocaleDateString('ko-KR', { weekday: 'long' });
+    
+    setResult(resultDateStr);
+    setDetailedResult(
+      `${resultDate.toLocaleDateString('ko-KR', { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric' 
+      })} (${dayOfWeek})`
+    );
+
+    // 히스토리에 추가
+    addToHistory({
+      type: mode,
+      startDate: baseDate,
+      amount,
+      unit,
+      result: resultDateStr,
+    });
+  };
+
+  // 히스토리에 추가
+  const addToHistory = (calculation: Omit<DateCalculation, 'id' | 'timestamp'>) => {
+    const newCalculation: DateCalculation = {
+      ...calculation,
+      id: Date.now(),
+      timestamp: new Date()
+    };
+    
+    setRecentCalculations(prev => [newCalculation, ...prev.slice(0, 9)]);
+  };
+
+  // 즐겨찾기 토글
+  const toggleFavorite = () => {
+    const current = {
+      id: Date.now(),
+      type: mode,
+      startDate: mode === 'difference' ? startDate : baseDate,
+      endDate: mode === 'difference' ? endDate : undefined,
+      amount: mode !== 'difference' ? amount : undefined,
+      unit: mode !== 'difference' ? unit : undefined,
+      result,
+      timestamp: new Date()
+    };
+
+    const exists = favorites.some(fav => 
+      fav.type === current.type &&
+      fav.startDate === current.startDate &&
+      fav.endDate === current.endDate &&
+      fav.amount === current.amount &&
+      fav.unit === current.unit
+    );
+
+    if (exists) {
+      setFavorites(favorites.filter(fav => 
+        !(fav.type === current.type &&
+          fav.startDate === current.startDate &&
+          fav.endDate === current.endDate &&
+          fav.amount === current.amount &&
+          fav.unit === current.unit)
+      ));
+    } else {
+      setFavorites([current, ...favorites.slice(0, 9)]);
+    }
+  };
+
+  // 복사 기능
+  const copyResult = async () => {
+    try {
+      await navigator.clipboard.writeText(detailedResult);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('복사 실패:', err);
+    }
+  };
+
+  // 계산 실행
+  useEffect(() => {
+    if (mode === 'difference') {
+      calculateDifference();
+    } else {
+      calculateAddSubtract();
+    }
+  }, [mode, startDate, endDate, baseDate, amount, unit]);
+
+  const isFavorite = favorites.some(fav => 
+    fav.type === mode &&
+    fav.startDate === (mode === 'difference' ? startDate : baseDate) &&
+    (mode === 'difference' ? fav.endDate === endDate : fav.amount === amount && fav.unit === unit)
+  );
+
   return (
-    <>
-      
-      <ToolLayout
-        title="날짜 계산기"
-        description="날짜 간격 계산, 날짜 더하기/빼기, 나이 계산을 쉽게"
-        category="utility"
-        relatedTools={relatedTools}
-      >
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="difference">날짜 차이</TabsTrigger>
-            <TabsTrigger value="calculate">날짜 계산</TabsTrigger>
-            <TabsTrigger value="age">나이 계산</TabsTrigger>
-          </TabsList>
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>돌아가기</span>
+            </Link>
+            
+            <h1 className="text-xl font-bold text-white">
+              날짜 계산기
+            </h1>
+            
+            <div className="w-20"></div>
+          </div>
+        </div>
+      </header>
 
-          {/* 날짜 차이 계산 */}
-          <TabsContent value="difference">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  날짜 차이 계산
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="start-date">시작 날짜</Label>
-                    <Input
-                      id="start-date"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="end-date">종료 날짜</Label>
-                    <Input
-                      id="end-date"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
+      {/* 메인 설명 */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2">날짜 계산기</h2>
+          <p className="text-gray-400">날짜 간격 계산, 특정 날짜 찾기 등 다양한 날짜 관련 계산을 도와드립니다.</p>
+        </div>
 
-                <Button 
-                  onClick={calculateDifference}
-                  className="w-full bg-blue-600 hover:bg-blue-700"
-                  disabled={!startDate || !endDate}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* 왼쪽: 메인 계산기 */}
+          <div className="lg:col-span-2">
+            
+            {/* 모드 선택 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-6">
+              <h3 className="text-lg font-bold mb-4">계산 유형</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <button
+                  onClick={() => setMode('difference')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border transition-all ${
+                    mode === 'difference'
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
                 >
-                  <Calculator className="w-4 h-4 mr-2" />
-                  차이 계산하기
-                </Button>
-
-                {dateDifference && (
-                  <div className="bg-green-50 dark:bg-green-900/20 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3">계산 결과</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{dateDifference.days}</div>
-                        <div className="text-sm text-gray-600">일</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{dateDifference.weeks}</div>
-                        <div className="text-sm text-gray-600">주</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{dateDifference.months}</div>
-                        <div className="text-sm text-gray-600">개월</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">{dateDifference.years}</div>
-                        <div className="text-sm text-gray-600">년</div>
-                      </div>
-                    </div>
-                    {startDate && endDate && (
-                      <div className="mt-4 text-sm text-gray-600">
-                        <p>{formatDate(startDate)}</p>
-                        <p>{formatDate(endDate)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* 날짜 계산 */}
-          <TabsContent value="calculate">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Clock className="w-5 h-5 mr-2" />
-                  날짜 더하기/빼기
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="base-date">기준 날짜</Label>
-                    <Input
-                      id="base-date"
-                      type="date"
-                      value={baseDate}
-                      onChange={(e) => setBaseDate(e.target.value)}
-                      className="mt-1"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="days-input">일수</Label>
-                    <Input
-                      id="days-input"
-                      type="number"
-                      value={daysToAdd}
-                      onChange={(e) => setDaysToAdd(e.target.value)}
-                      placeholder="더하거나 뺄 일수"
-                      className="mt-1"
-                    />
-                  </div>
-                </div>
-
-                <div className="flex space-x-4">
-                  <Button 
-                    onClick={addDays}
-                    className="flex-1 bg-green-600 hover:bg-green-700"
-                    disabled={!baseDate || !daysToAdd}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    더하기
-                  </Button>
-                  <Button 
-                    onClick={subtractDays}
-                    className="flex-1 bg-red-600 hover:bg-red-700"
-                    disabled={!baseDate || !daysToAdd}
-                  >
-                    <Minus className="w-4 h-4 mr-2" />
-                    빼기
-                  </Button>
-                </div>
-
-                {calculatedDate && (
-                  <div className="bg-blue-50 dark:bg-blue-900/20 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-2">계산 결과</h3>
-                    <div className="text-2xl font-bold text-blue-600 mb-2">
-                      {calculatedDate}
-                    </div>
-                    <div className="text-sm text-gray-600">
-                      {formatDate(calculatedDate)}
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* 나이 계산 */}
-          <TabsContent value="age">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Calendar className="w-5 h-5 mr-2" />
-                  나이 계산
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="birth-date">생년월일</Label>
-                  <Input
-                    id="birth-date"
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-
-                <Button 
-                  onClick={calculateAgeResult}
-                  className="w-full bg-purple-600 hover:bg-purple-700"
-                  disabled={!birthDate}
+                  <Calendar className="h-4 w-4" />
+                  <span className="text-sm font-medium">날짜 간격</span>
+                </button>
+                
+                <button
+                  onClick={() => setMode('add')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border transition-all ${
+                    mode === 'add'
+                      ? 'bg-green-600 border-green-500 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
                 >
-                  <Calculator className="w-4 h-4 mr-2" />
-                  나이 계산하기
-                </Button>
-
-                {ageResult && (
-                  <div className="bg-purple-50 dark:bg-purple-900/20 p-6 rounded-lg">
-                    <h3 className="text-lg font-semibold mb-3">나이 정보</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{ageResult.years}</div>
-                        <div className="text-sm text-gray-600">세</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{ageResult.months}</div>
-                        <div className="text-sm text-gray-600">개월</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{ageResult.days}</div>
-                        <div className="text-sm text-gray-600">일</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">{ageResult.totalDays.toLocaleString()}</div>
-                        <div className="text-sm text-gray-600">총 일수</div>
-                      </div>
-                    </div>
-                    {birthDate && (
-                      <div className="mt-4 text-sm text-gray-600">
-                        <p>생년월일: {formatDate(birthDate)}</p>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-
-        {/* 계산 히스토리 */}
-        {history.length > 0 && (
-          <Card>
-            <CardHeader>
-              <CardTitle>최근 계산 기록</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2 max-h-60 overflow-y-auto">
-                {history.slice(0, 10).map((item) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg"
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Badge variant="outline">
-                        {item.type === 'difference' && '📊 차이'}
-                        {item.type === 'add' && '➕ 더하기'}
-                        {item.type === 'subtract' && '➖ 빼기'}
-                        {item.type === 'age' && '🎂 나이'}
-                      </Badge>
-                      <div className="text-sm">
-                        <div className="font-medium">{item.input}</div>
-                        <div className="text-gray-600">{item.result}</div>
-                      </div>
-                    </div>
-                    <span className="text-xs text-gray-500">
-                      {new Date(item.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* 광고 */}
-        <AdBannerInline />
-
-        {/* 사용법 안내 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>사용법</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div>
-                <h4 className="font-semibold mb-2">📊 날짜 차이</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 두 날짜 사이의 간격 계산</li>
-                  <li>• 일, 주, 개월, 년 단위로 표시</li>
-                  <li>• D-Day 계산에 유용</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">📅 날짜 계산</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 특정 날짜에서 일수 더하기/빼기</li>
-                  <li>• 미래/과거 날짜 예측</li>
-                  <li>• 프로젝트 일정 계산에 활용</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">🎂 나이 계산</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 정확한 나이 계산</li>
-                  <li>• 년, 월, 일 단위로 표시</li>
-                  <li>• 총 살아온 일수 확인</li>
-                </ul>
+                  <Plus className="h-4 w-4" />
+                  <span className="text-sm font-medium">날짜 더하기</span>
+                </button>
+                
+                <button
+                  onClick={() => setMode('subtract')}
+                  className={`flex items-center space-x-2 p-3 rounded-lg border transition-all ${
+                    mode === 'subtract'
+                      ? 'bg-red-600 border-red-500 text-white'
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <Minus className="h-4 w-4" />
+                  <span className="text-sm font-medium">날짜 빼기</span>
+                </button>
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </ToolLayout>
-    </>
+
+            {/* 계산기 메인 */}
+            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
+              
+              {mode === 'difference' ? (
+                // 날짜 간격 계산
+                <div>
+                  <h3 className="text-lg font-bold mb-6 text-center">두 날짜 사이의 간격 계산</h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-3">
+                        시작 날짜
+                      </label>
+                      <input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white text-lg"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-3">
+                        종료 날짜
+                      </label>
+                      <input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white text-lg"
+                      />
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                // 날짜 더하기/빼기
+                <div>
+                  <h3 className="text-lg font-bold mb-6 text-center">
+                    날짜에 시간 {mode === 'add' ? '더하기' : '빼기'}
+                  </h3>
+                  
+                  <div className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-400 mb-3">
+                        기준 날짜
+                      </label>
+                      <input
+                        type="date"
+                        value={baseDate}
+                        onChange={(e) => setBaseDate(e.target.value)}
+                        className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white text-lg"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-3">
+                          {mode === 'add' ? '더할' : '뺄'} 값
+                        </label>
+                        <input
+                          type="number"
+                          min="0"
+                          value={amount}
+                          onChange={(e) => setAmount(Number(e.target.value))}
+                          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white text-lg"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-400 mb-3">
+                          단위
+                        </label>
+                        <select
+                          value={unit}
+                          onChange={(e) => setUnit(e.target.value)}
+                          className="w-full bg-gray-700 border border-gray-600 rounded-lg px-4 py-3 text-white"
+                        >
+                          <option value="days">일</option>
+                          <option value="weeks">주</option>
+                          <option value="months">개월</option>
+                          <option value="years">년</option>
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 결과 표시 */}
+              {result && (
+                <div className="mt-8 p-6 bg-gray-700 rounded-lg border border-gray-600">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-lg font-bold">계산 결과</h4>
+                    <div className="flex space-x-2">
+                      <button
+                        onClick={toggleFavorite}
+                        className={`p-2 rounded-lg transition-colors ${
+                          isFavorite
+                            ? 'bg-yellow-600 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                        }`}
+                      >
+                        <Star className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                      </button>
+                      
+                      <button
+                        onClick={copyResult}
+                        className={`p-2 rounded-lg transition-colors ${
+                          copied
+                            ? 'bg-green-600 text-white'
+                            : 'bg-gray-600 hover:bg-gray-500 text-gray-300'
+                        }`}
+                      >
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
+                  
+                  <div className="text-2xl font-bold text-blue-400 mb-2">{result}</div>
+                  <div className="text-sm text-gray-300 whitespace-pre-line">{detailedResult}</div>
+                </div>
+              )}
+            </div>
+
+            {/* 최근 계산 */}
+            {recentCalculations.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h3 className="text-lg font-bold mb-4">최근 계산</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {recentCalculations.map((calc) => (
+                    <div key={calc.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex-1">
+                        <div className="text-sm text-gray-300">
+                          {calc.type === 'difference' 
+                            ? `${calc.startDate} ~ ${calc.endDate}`
+                            : `${calc.startDate} ${calc.type === 'add' ? '+' : '-'} ${calc.amount}${calc.unit === 'days' ? '일' : calc.unit === 'weeks' ? '주' : calc.unit === 'months' ? '개월' : '년'}`
+                          }
+                        </div>
+                        <div className="text-xs text-gray-400 mt-1">
+                          결과: {calc.result} · {calc.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          setMode(calc.type);
+                          if (calc.type === 'difference') {
+                            setStartDate(calc.startDate);
+                            setEndDate(calc.endDate || '');
+                          } else {
+                            setBaseDate(calc.startDate);
+                            setAmount(calc.amount || 1);
+                            setUnit(calc.unit || 'days');
+                          }
+                        }}
+                        className="text-gray-400 hover:text-white transition-colors text-sm"
+                      >
+                        다시 사용
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* 오른쪽: 즐겨찾기 및 정보 */}
+          <div className="space-y-6">
+            
+            {/* 즐겨찾기 */}
+            {favorites.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <Star className="h-5 w-5 text-yellow-500 mr-2 fill-current" />
+                  즐겨찾기
+                </h3>
+                <div className="space-y-2">
+                  {favorites.map((fav, index) => (
+                    <button
+                      key={index}
+                      onClick={() => {
+                        setMode(fav.type);
+                        if (fav.type === 'difference') {
+                          setStartDate(fav.startDate);
+                          setEndDate(fav.endDate || '');
+                        } else {
+                          setBaseDate(fav.startDate);
+                          setAmount(fav.amount || 1);
+                          setUnit(fav.unit || 'days');
+                        }
+                      }}
+                      className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                    >
+                      <div className="text-sm text-white">
+                        {fav.type === 'difference' ? '날짜 간격' : fav.type === 'add' ? '날짜 더하기' : '날짜 빼기'}
+                      </div>
+                      <div className="text-xs text-gray-400">
+                        {fav.type === 'difference' 
+                          ? `${fav.startDate} ~ ${fav.endDate}`
+                          : `${fav.amount}${fav.unit === 'days' ? '일' : fav.unit === 'weeks' ? '주' : fav.unit === 'months' ? '개월' : '년'}`
+                        }
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* 빠른 계산 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-bold mb-4">빠른 계산</h3>
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const nextWeek = new Date();
+                    nextWeek.setDate(nextWeek.getDate() + 7);
+                    setMode('difference');
+                    setStartDate(today);
+                    setEndDate(nextWeek.toISOString().split('T')[0]);
+                  }}
+                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  <div className="text-sm text-white">오늘부터 일주일 후</div>
+                  <div className="text-xs text-gray-400">날짜 간격 계산</div>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    setMode('add');
+                    setBaseDate(today);
+                    setAmount(30);
+                    setUnit('days');
+                  }}
+                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  <div className="text-sm text-white">30일 후 날짜</div>
+                  <div className="text-xs text-gray-400">날짜 더하기</div>
+                </button>
+                
+                <button
+                  onClick={() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const newYear = new Date(new Date().getFullYear() + 1, 0, 1).toISOString().split('T')[0];
+                    setMode('difference');
+                    setStartDate(today);
+                    setEndDate(newYear);
+                  }}
+                  className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  <div className="text-sm text-white">새해까지 D-Day</div>
+                  <div className="text-xs text-gray-400">D-Day 계산</div>
+                </button>
+              </div>
+            </div>
+
+            {/* 유용한 정보 */}
+            <div className="bg-blue-900/20 rounded-lg p-6 border border-blue-800/30">
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <Clock className="h-5 w-5 text-blue-400 mr-2" />
+                날짜 계산 팁
+              </h3>
+              <div className="space-y-2 text-sm text-blue-300">
+                <div>• 윤년을 고려한 정확한 계산을 제공합니다</div>
+                <div>• 주말과 공휴일도 포함하여 계산됩니다</div>
+                <div>• 과거와 미래 날짜 모두 계산 가능합니다</div>
+                <div>• 결과를 클립보드로 복사할 수 있습니다</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

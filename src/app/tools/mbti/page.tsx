@@ -1,237 +1,197 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { 
-  ArrowLeft, 
-  RotateCcw, 
-  Share2, 
-  Users, 
-  BookOpen, 
-  CheckCircle, 
-  HelpCircle, 
-  Lightbulb,
-  ChevronLeft,
-  Brain,
-  Star,
-  Heart,
-  Target
-} from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { questions, mbtiResults, type MBTIResult } from '@/lib/mbti-data';
+import { ArrowLeft, ArrowRight, RotateCcw, Share2, Download, CheckCircle } from 'lucide-react';
+import { questions, mbtiResults, type Question, type MBTIResult } from '@/lib/mbti-data';
 
-interface TestStyle {
-  id: string;
-  name: string;
-  description: string;
-  icon: React.ReactNode;
-  color: string;
-}
+type Answer = 1 | 2 | 3 | 4 | 5; // 1: 전혀 아니다, 5: 매우 그렇다
 
-const testStyles: TestStyle[] = [
-  {
-    id: 'classic',
-    name: '클래식 스타일',
-    description: '전통적인 MBTI 질문으로 정확한 성격 유형을 측정합니다',
-    icon: <Brain className="h-6 w-6" />,
-    color: 'from-blue-500 to-purple-600'
-  },
-  {
-    id: 'modern',
-    name: '모던 스타일',
-    description: '현대적인 상황에 맞춘 실용적인 질문들입니다',
-    icon: <Star className="h-6 w-6" />,
-    color: 'from-purple-500 to-pink-600'
-  },
-  {
-    id: 'relationship',
-    name: '관계 스타일',
-    description: '인간관계와 소통에 초점을 맞춘 질문들입니다',
-    icon: <Heart className="h-6 w-6" />,
-    color: 'from-pink-500 to-red-600'
-  },
-  {
-    id: 'career',
-    name: '직업 스타일',
-    description: '직업과 업무 환경에 특화된 질문들입니다',
-    icon: <Target className="h-6 w-6" />,
-    color: 'from-green-500 to-blue-600'
-  }
-];
-
-export default function MBTIPage() {
-  const [selectedStyle, setSelectedStyle] = useState<string | null>(null);
-  const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
-  const [showResult, setShowResult] = useState(false);
+export default function MBTITest() {
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, Answer>>({});
+  const [testType, setTestType] = useState<'classic' | 'modern' | 'relationship' | 'career'>('classic');
+  const [isComplete, setIsComplete] = useState(false);
   const [result, setResult] = useState<MBTIResult | null>(null);
-  const [scores, setScores] = useState({ E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 });
+  const [showIntro, setShowIntro] = useState(true);
 
-  const currentQuestions = selectedStyle ? questions[selectedStyle] : [];
-  const progress = currentQuestions.length > 0 ? ((currentQuestion + 1) / currentQuestions.length) * 100 : 0;
+  const currentQuestions = questions[testType];
+  const totalQuestions = currentQuestions.length;
+  const progress = ((currentQuestionIndex + 1) / totalQuestions) * 100;
 
-  const handleStyleSelect = (styleId: string) => {
-    setSelectedStyle(styleId);
-    setCurrentQuestion(0);
-    setAnswers({});
-    setShowResult(false);
-    setResult(null);
-    setScores({ E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 });
-  };
+  // MBTI 결과 계산
+  const calculateMBTI = () => {
+    const scores = {
+      E: 0, I: 0,
+      S: 0, N: 0,
+      T: 0, F: 0,
+      J: 0, P: 0
+    };
 
-  const handleAnswer = (choiceIndex: number) => {
-    const question = currentQuestions[currentQuestion];
-    if (!question) return;
-
-    const newAnswers = { ...answers, [question.id]: choiceIndex };
-    setAnswers(newAnswers);
-
-    if (currentQuestion < currentQuestions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
-    } else {
-      calculateResult(newAnswers);
-    }
-  };
-
-  const calculateResult = (finalAnswers: Record<number, number>) => {
-    const newScores = { E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 };
-    
     currentQuestions.forEach(question => {
-      const answer = finalAnswers[question.id];
-      if (answer !== undefined) {
-        // 1 = 동의 (question weight), 2 = 반대 (opposite weight)
-        if (answer === 1) {
-          newScores[question.weight]++;
-        } else if (answer === 2) {
-          // 반대 성향에 점수 추가
-          const opposites = {
-            'E': 'I', 'I': 'E',
-            'S': 'N', 'N': 'S',
-            'T': 'F', 'F': 'T',
-            'J': 'P', 'P': 'J'
-          };
-          const oppositeWeight = opposites[question.weight] as keyof typeof newScores;
-          newScores[oppositeWeight]++;
-        }
+      const answer = answers[question.id];
+      if (answer) {
+        // 5점 척도를 점수로 변환 (1=0점, 2=1점, 3=2점, 4=3점, 5=4점)
+        const score = answer - 1;
+        scores[question.weight] += score;
       }
     });
 
-    setScores(newScores);
+    // 각 차원에서 우세한 성향 결정
+    const mbtiType = 
+      (scores.E >= scores.I ? 'E' : 'I') +
+      (scores.S >= scores.N ? 'S' : 'N') +
+      (scores.T >= scores.F ? 'T' : 'F') +
+      (scores.J >= scores.P ? 'J' : 'P');
 
-    // MBTI 유형 결정
-    const mbtiType = [
-      newScores.E > newScores.I ? 'E' : 'I',
-      newScores.S > newScores.N ? 'S' : 'N',
-      newScores.T > newScores.F ? 'T' : 'F',
-      newScores.J > newScores.P ? 'J' : 'P'
-    ].join('');
-
-    const mbtiResult = mbtiResults[mbtiType];
-    setResult(mbtiResult);
-    setShowResult(true);
+    return mbtiResults[mbtiType] || mbtiResults['ISFP']; // 기본값
   };
 
-  const resetTest = () => {
-    setSelectedStyle(null);
-    setCurrentQuestion(0);
+  // 답변 선택
+  const selectAnswer = (answer: Answer) => {
+    setAnswers({ ...answers, [currentQuestions[currentQuestionIndex].id]: answer });
+    
+    if (currentQuestionIndex < totalQuestions - 1) {
+      setTimeout(() => {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      }, 300);
+    } else {
+      // 테스트 완료
+      setTimeout(() => {
+        const mbtiResult = calculateMBTI();
+        setResult(mbtiResult);
+        setIsComplete(true);
+      }, 300);
+    }
+  };
+
+  // 이전 질문으로
+  const goToPrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  // 테스트 다시 시작
+  const restartTest = () => {
+    setCurrentQuestionIndex(0);
     setAnswers({});
-    setShowResult(false);
+    setIsComplete(false);
     setResult(null);
-    setScores({ E: 0, I: 0, S: 0, N: 0, T: 0, F: 0, J: 0, P: 0 });
+    setShowIntro(true);
   };
 
-  const shareResult = () => {
-    if (result) {
-      const text = `나의 MBTI 유형은 ${result.type} (${result.name})입니다! ToolHub.tools에서 테스트해보세요.`;
-      const url = 'https://toolhub.tools/tools/mbti';
-      
-      if (navigator.share) {
-        navigator.share({
-          title: 'MBTI 테스트 결과',
-          text: text,
-          url: url
-        });
-      } else {
-        navigator.clipboard.writeText(`${text} ${url}`);
-        alert('결과가 클립보드에 복사되었습니다!');
-      }
-    }
+  // 테스트 시작
+  const startTest = () => {
+    setShowIntro(false);
+    setCurrentQuestionIndex(0);
+    setAnswers({});
+    setIsComplete(false);
+    setResult(null);
   };
 
-  const prevQuestion = () => {
-    if (currentQuestion > 0) {
-      setCurrentQuestion(currentQuestion - 1);
-    }
-  };
-
-  // 스타일 선택 화면
-  if (!selectedStyle) {
+  if (showIntro) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 py-8 px-4">
-        <div className="max-w-6xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-12">
-            <Link href="/" className="inline-flex items-center text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              홈으로 돌아가기
-            </Link>
-            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent mb-4">
-              MBTI 성격유형 테스트
-            </h1>
-            <p className="text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-              4가지 스타일로 나만의 성격을 알아보세요! 정확하고 재미있는 MBTI 테스트를 통해 
-              당신의 성격 유형을 발견해보세요.
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link 
+                href="/"
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>돌아가기</span>
+              </Link>
+              
+              <h1 className="text-xl font-bold text-white">
+                MBTI 성격 유형 테스트
+              </h1>
+              
+              <div className="w-20"></div>
+            </div>
+          </div>
+        </header>
+
+        {/* 인트로 화면 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-2xl mx-auto text-center">
+            <div className="mb-8">
+              <div className="w-20 h-20 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-3xl">🧠</span>
+              </div>
+              <h2 className="text-3xl font-bold mb-4">MBTI 성격 유형 테스트</h2>
+              <p className="text-gray-400 text-lg">
+                16가지 성격 유형 중 나의 유형을 정확하게 분석해보세요
               </p>
             </div>
 
-          {/* 테스트 스타일 선택 */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {testStyles.map((style) => (
-              <Card
-                key={style.id}
-                className="cursor-pointer hover:shadow-lg transition-all duration-300 border-2 hover:border-purple-300"
-                onClick={() => handleStyleSelect(style.id)}
-              >
-                <CardHeader>
-                  <div className="flex items-center space-x-3">
-                    <div className={`p-3 rounded-lg bg-gradient-to-r ${style.color} text-white`}>
-                      {style.icon}
-                    </div>
-                    <div>
-                      <CardTitle className="text-xl">{style.name}</CardTitle>
-                      <p className="text-gray-600 text-sm">{style.description}</p>
-                    </div>
-                  </div>
-                </CardHeader>
-              </Card>
-            ))}
-          </div>
+            {/* 테스트 유형 선택 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mb-8">
+              <h3 className="text-lg font-bold mb-4">테스트 유형을 선택하세요</h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <button
+                  onClick={() => setTestType('classic')}
+                  className={`p-4 rounded-lg border transition-all text-left ${
+                    testType === 'classic' 
+                      ? 'bg-purple-600 border-purple-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="font-semibold mb-2">클래식 테스트</div>
+                  <div className="text-sm opacity-80">기본적인 MBTI 질문 (16문항)</div>
+                </button>
+                
+                <button
+                  onClick={() => setTestType('modern')}
+                  className={`p-4 rounded-lg border transition-all text-left ${
+                    testType === 'modern' 
+                      ? 'bg-purple-600 border-purple-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="font-semibold mb-2">현대적 테스트</div>
+                  <div className="text-sm opacity-80">현대 사회에 맞춘 질문 (8문항)</div>
+                </button>
+                
+                <button
+                  onClick={() => setTestType('relationship')}
+                  className={`p-4 rounded-lg border transition-all text-left ${
+                    testType === 'relationship' 
+                      ? 'bg-purple-600 border-purple-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="font-semibold mb-2">인간관계 테스트</div>
+                  <div className="text-sm opacity-80">대인관계 중심 질문 (8문항)</div>
+                </button>
+                
+                <button
+                  onClick={() => setTestType('career')}
+                  className={`p-4 rounded-lg border transition-all text-left ${
+                    testType === 'career' 
+                      ? 'bg-purple-600 border-purple-500 text-white' 
+                      : 'bg-gray-700 border-gray-600 text-gray-300 hover:bg-gray-600'
+                  }`}
+                >
+                  <div className="font-semibold mb-2">직업 적성 테스트</div>
+                  <div className="text-sm opacity-80">직업 선택 중심 질문 (8문항)</div>
+                </button>
+              </div>
+            </div>
 
-          {/* 특징 설명 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <CheckCircle className="h-8 w-8 text-blue-600" />
-              </div>
-              <h3 className="font-semibold mb-2">정확한 결과</h3>
-              <p className="text-gray-600 text-sm">과학적으로 검증된 MBTI 이론을 바탕으로 정확한 성격 유형을 측정합니다.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-purple-600" />
-              </div>
-              <h3 className="font-semibold mb-2">다양한 스타일</h3>
-              <p className="text-gray-600 text-sm">4가지 다른 스타일의 질문으로 다양한 관점에서 성격을 분석합니다.</p>
-            </div>
-            <div className="text-center">
-              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <BookOpen className="h-8 w-8 text-green-600" />
-              </div>
-              <h3 className="font-semibold mb-2">상세한 분석</h3>
-              <p className="text-gray-600 text-sm">성격 유형별 상세한 설명과 특징, 직업 추천까지 제공합니다.</p>
+            <button
+              onClick={startTest}
+              className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-4 rounded-lg font-medium text-lg transition-colors"
+            >
+              테스트 시작하기 →
+            </button>
+
+            <div className="mt-8 text-sm text-gray-400">
+              <p>• 정확한 결과를 위해 솔직하게 답변해 주세요</p>
+              <p>• 테스트는 약 3-5분 소요됩니다</p>
+              <p>• 결과는 16가지 성격 유형 중 하나로 분류됩니다</p>
             </div>
           </div>
         </div>
@@ -239,262 +199,276 @@ export default function MBTIPage() {
     );
   }
 
-  // 테스트 진행 화면
-  if (!showResult && selectedStyle) {
-    const currentQ = currentQuestions[currentQuestion];
-    
+  if (isComplete && result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-8">
-            <div className="flex items-center justify-between mb-4">
-              <Button variant="ghost" onClick={resetTest} className="text-gray-600">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                스타일 선택으로
-              </Button>
-              <div className="text-sm text-gray-500">
-                {currentQuestion + 1} / {currentQuestions.length}
+      <div className="min-h-screen bg-gray-900 text-white">
+        {/* Header */}
+        <header className="bg-gray-900 border-b border-gray-800">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link 
+                href="/"
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <ArrowLeft className="h-5 w-5" />
+                <span>돌아가기</span>
+              </Link>
+              
+              <h1 className="text-xl font-bold text-white">
+                MBTI 테스트 결과
+              </h1>
+              
+              <button
+                onClick={restartTest}
+                className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>다시 테스트</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* 결과 화면 */}
+        <div className="container mx-auto px-6 py-12">
+          <div className="max-w-4xl mx-auto">
+            
+            {/* 메인 결과 */}
+            <div className="text-center mb-12">
+              <div className="w-24 h-24 bg-purple-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                <span className="text-2xl font-bold text-white">{result.type}</span>
+              </div>
+              <h2 className="text-4xl font-bold mb-4">{result.name}</h2>
+              <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+                {result.description}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              
+              {/* 주요 특성 */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  주요 특성
+                </h3>
+                <div className="space-y-2">
+                  {result.traits.map((trait, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                      <span className="text-gray-300">{trait}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 장점 */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-green-500 mr-2" />
+                  장점
+                </h3>
+                <div className="space-y-2">
+                  {result.strengths.map((strength, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                      <span className="text-gray-300">{strength}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 약점 */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-orange-500 mr-2" />
+                  개선점
+                </h3>
+                <div className="space-y-2">
+                  {result.weaknesses.map((weakness, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                      <span className="text-gray-300">{weakness}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 추천 직업 */}
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4 flex items-center">
+                  <CheckCircle className="h-5 w-5 text-blue-500 mr-2" />
+                  추천 직업
+                </h3>
+                <div className="space-y-2">
+                  {result.careerSuggestions.map((career, index) => (
+                    <div key={index} className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                      <span className="text-gray-300">{career}</span>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
-            <Progress value={progress} className="h-2 mb-4" />
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {testStyles.find(s => s.id === selectedStyle)?.name}
-            </h2>
-          </div>
 
-          {/* 질문 카드 */}
-          <Card className="mb-8">
-            <CardHeader>
-              <CardTitle className="text-xl text-center">
-                {currentQ?.text}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Button
-                  onClick={() => handleAnswer(1)}
-                  className="w-full h-16 text-lg bg-blue-600 hover:bg-blue-700"
-                >
-                  동의합니다
-                </Button>
-                <Button
-                  onClick={() => handleAnswer(2)}
-                  className="w-full h-16 text-lg bg-gray-600 hover:bg-gray-700"
-                >
-                  반대합니다
-                </Button>
+            {/* 유명인 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-8">
+              <h3 className="text-lg font-bold mb-4">같은 유형의 유명인</h3>
+              <div className="flex flex-wrap gap-2">
+                {result.famousPeople.map((person, index) => (
+                  <span 
+                    key={index}
+                    className="bg-purple-600/20 text-purple-400 px-3 py-1 rounded-full text-sm border border-purple-600/30"
+                  >
+                    {person}
+                  </span>
+                ))}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* 액션 버튼 */}
+            <div className="flex justify-center space-x-4 mt-8">
+              <button
+                onClick={restartTest}
+                className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                <RotateCcw className="h-4 w-4" />
+                <span>다시 테스트</span>
+              </button>
+              
+              <button
+                onClick={() => {
+                  if (navigator.share) {
+                    navigator.share({
+                      title: `나의 MBTI는 ${result.type}`,
+                      text: `${result.name} - ${result.description}`,
+                      url: window.location.href
+                    });
+                  }
+                }}
+                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium transition-colors"
+              >
+                <Share2 className="h-4 w-4" />
+                <span>결과 공유</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>돌아가기</span>
+            </Link>
+            
+            <h1 className="text-xl font-bold text-white">
+              MBTI 성격 유형 테스트
+            </h1>
+            
+            <button
+              onClick={restartTest}
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <RotateCcw className="h-4 w-4" />
+              <span>처음부터</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 진행률 바 */}
+      <div className="bg-gray-800 border-b border-gray-700">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-gray-400">
+              질문 {currentQuestionIndex + 1} / {totalQuestions}
+            </span>
+            <span className="text-sm text-gray-400">
+              {Math.round(progress)}% 완료
+            </span>
+          </div>
+          <div className="w-full bg-gray-700 rounded-full h-2">
+            <div 
+              className="bg-purple-600 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+        </div>
+      </div>
+
+      {/* 질문 화면 */}
+      <div className="container mx-auto px-6 py-12">
+        <div className="max-w-2xl mx-auto">
+          
+          {/* 질문 */}
+          <div className="bg-gray-800 rounded-lg p-8 border border-gray-700 mb-8">
+            <h2 className="text-2xl font-bold text-center mb-8">
+              {currentQuestions[currentQuestionIndex].text}
+            </h2>
+
+            {/* 답변 선택지 */}
+            <div className="space-y-3">
+              {[
+                { value: 1, text: '전혀 아니다', color: 'bg-red-600' },
+                { value: 2, text: '아니다', color: 'bg-orange-600' },
+                { value: 3, text: '보통이다', color: 'bg-gray-600' },
+                { value: 4, text: '그렇다', color: 'bg-blue-600' },
+                { value: 5, text: '매우 그렇다', color: 'bg-green-600' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => selectAnswer(option.value as Answer)}
+                  className={`w-full p-4 rounded-lg border transition-all text-left hover:bg-gray-700 ${
+                    answers[currentQuestions[currentQuestionIndex].id] === option.value
+                      ? `${option.color} border-gray-500 text-white`
+                      : 'bg-gray-700 border-gray-600 text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium">{option.text}</span>
+                    <div className={`w-4 h-4 rounded-full ${option.color} opacity-70`}></div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
 
           {/* 네비게이션 */}
           <div className="flex justify-between">
-            <Button
-              variant="outline"
-              onClick={prevQuestion}
-              disabled={currentQuestion === 0}
+            <button
+              onClick={goToPrevious}
+              disabled={currentQuestionIndex === 0}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-lg font-medium transition-colors ${
+                currentQuestionIndex === 0
+                  ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-600 hover:bg-gray-700 text-white'
+              }`}
             >
-              <ChevronLeft className="h-4 w-4 mr-2" />
-              이전
-            </Button>
-            <Button
-              variant="outline"
-              onClick={resetTest}
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              다시 시작
-            </Button>
-          </div>
-          </div>
-        </div>
-    );
-  }
+              <ArrowLeft className="h-4 w-4" />
+              <span>이전</span>
+            </button>
 
-  // 결과 화면
-  if (showResult && result) {
-  return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-indigo-50 py-8 px-4">
-        <div className="max-w-4xl mx-auto">
-          {/* 헤더 */}
-          <div className="text-center mb-8">
-            <Button variant="ghost" onClick={resetTest} className="mb-4">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              다시 테스트하기
-            </Button>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">테스트 결과</h1>
-          </div>
-
-          {/* 결과 카드 */}
-          <Card className="mb-8">
-            <CardHeader className="text-center">
-              <div className="mb-4">
-                <Badge className="text-lg px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 text-white">
-                  {result.type}
-                </Badge>
+            <div className="text-center">
+              <div className="text-sm text-gray-400">
+                {answers[currentQuestions[currentQuestionIndex].id] ? '답변 완료' : '답변을 선택해주세요'}
               </div>
-              <CardTitle className="text-2xl mb-2">{result.name}</CardTitle>
-              <p className="text-gray-600">{result.description}</p>
-            </CardHeader>
-            <CardContent>
-              {/* 성향 점수 */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">외향성 (E)</div>
-                  <div className="text-lg font-bold text-blue-600">{scores.E}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">내향성 (I)</div>
-                  <div className="text-lg font-bold text-blue-600">{scores.I}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">감각 (S)</div>
-                  <div className="text-lg font-bold text-green-600">{scores.S}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">직관 (N)</div>
-                  <div className="text-lg font-bold text-green-600">{scores.N}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">사고 (T)</div>
-                  <div className="text-lg font-bold text-purple-600">{scores.T}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">감정 (F)</div>
-                  <div className="text-lg font-bold text-purple-600">{scores.F}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">판단 (J)</div>
-                  <div className="text-lg font-bold text-orange-600">{scores.J}</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-sm text-gray-600 mb-1">인식 (P)</div>
-                  <div className="text-lg font-bold text-orange-600">{scores.P}</div>
-                </div>
-              </div>
+            </div>
 
-              {/* 특징 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">주요 특징</h3>
-                <div className="flex flex-wrap gap-2">
-                  {result.traits.map((trait, index) => (
-                    <Badge key={index} variant="secondary" className="text-sm">
-                      {trait}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* 장단점 */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-green-600">강점</h3>
-                  <ul className="space-y-2">
-                    {result.strengths.map((strength, index) => (
-                      <li key={index} className="flex items-center text-sm">
-                        <CheckCircle className="h-4 w-4 text-green-600 mr-2" />
-                        {strength}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold mb-3 text-red-600">개선점</h3>
-                  <ul className="space-y-2">
-                    {result.weaknesses.map((weakness, index) => (
-                      <li key={index} className="flex items-center text-sm">
-                        <HelpCircle className="h-4 w-4 text-red-600 mr-2" />
-                        {weakness}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </div>
-
-              {/* 직업 추천 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">추천 직업</h3>
-                <div className="flex flex-wrap gap-2">
-                  {result.careerSuggestions.map((career, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {career}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* 유명인 */}
-              <div className="mb-6">
-                <h3 className="text-lg font-semibold mb-3">같은 유형의 유명인</h3>
-                <div className="flex flex-wrap gap-2">
-                  {result.famousPeople.map((person, index) => (
-                    <Badge key={index} variant="outline" className="text-sm">
-                      {person}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              {/* 액션 버튼 */}
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={shareResult} className="flex-1">
-                  <Share2 className="h-4 w-4 mr-2" />
-                  결과 공유하기
-                </Button>
-                <Button variant="outline" onClick={resetTest} className="flex-1">
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  다시 테스트하기
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* 추가 정보 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Lightbulb className="h-5 w-5 text-yellow-600" />
-                  <CardTitle className="text-lg">MBTI란?</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  Myers-Briggs Type Indicator의 약자로, 개인의 성격 유형을 16가지로 분류하는 성격 유형 검사입니다.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <Users className="h-5 w-5 text-blue-600" />
-                  <CardTitle className="text-lg">전 세계 사용자</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  전 세계적으로 가장 널리 사용되는 성격 유형 검사 중 하나로, 개인과 조직의 성장에 활용됩니다.
-                </p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <div className="flex items-center space-x-2">
-                  <BookOpen className="h-5 w-5 text-green-600" />
-                  <CardTitle className="text-lg">과학적 근거</CardTitle>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-600">
-                  카를 융의 심리유형론을 바탕으로 개발되었으며, 지속적인 연구와 검증을 통해 신뢰성을 확보했습니다.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="w-20"></div>
           </div>
         </div>
       </div>
+    </div>
   );
-  }
-
-  return null;
 }

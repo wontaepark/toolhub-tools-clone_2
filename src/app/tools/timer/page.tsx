@@ -1,415 +1,518 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import ToolLayout from '@/components/ToolLayout';
-import { AdBannerInline } from '@/components/AdBanner';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Play, Pause, Square, RotateCcw, Clock, Volume2, VolumeX, Settings } from 'lucide-react';
-import { Timer, formatTime, SoundManager } from '@/utils/timer';
-import { getRelatedTools } from '@/lib/tools';
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { ArrowLeft, Play, Pause, Square, RotateCcw, Plus, Minus, Volume2, VolumeX, Clock, Star } from 'lucide-react';
 
-type TimerState = 'idle' | 'running' | 'paused' | 'finished';
-
-interface Preset {
+interface TimerPreset {
+  id: number;
   name: string;
+  hours: number;
   minutes: number;
   seconds: number;
-  color: string;
-  category: string;
 }
 
-const TIMER_PRESETS: Record<string, Preset[]> = {
-  basic: [
-    { name: '5분', minutes: 5, seconds: 0, color: 'bg-blue-500', category: '기본' },
-    { name: '10분', minutes: 10, seconds: 0, color: 'bg-green-500', category: '기본' },
-    { name: '15분', minutes: 15, seconds: 0, color: 'bg-orange-500', category: '기본' },
-    { name: '30분', minutes: 30, seconds: 0, color: 'bg-purple-500', category: '기본' },
-  ],
-  workout: [
-    { name: 'HIIT 라운드', minutes: 0, seconds: 30, color: 'bg-red-500', category: '운동' },
-    { name: 'HIIT 휴식', minutes: 0, seconds: 10, color: 'bg-orange-500', category: '운동' },
-    { name: '스트레칭', minutes: 5, seconds: 0, color: 'bg-green-500', category: '운동' },
-    { name: '플랭크', minutes: 1, seconds: 0, color: 'bg-yellow-500', category: '운동' },
-  ],
-  cooking: [
-    { name: '라면', minutes: 3, seconds: 0, color: 'bg-red-500', category: '요리' },
-    { name: '계란 (반숙)', minutes: 6, seconds: 0, color: 'bg-yellow-500', category: '요리' },
-    { name: '계란 (완숙)', minutes: 10, seconds: 0, color: 'bg-orange-500', category: '요리' },
-    { name: '차 우리기', minutes: 3, seconds: 0, color: 'bg-green-500', category: '요리' },
-  ],
-  study: [
-    { name: '집중 45분', minutes: 45, seconds: 0, color: 'bg-purple-500', category: '학습' },
-    { name: '딥워크 90분', minutes: 90, seconds: 0, color: 'bg-indigo-500', category: '학습' },
-    { name: '복습 20분', minutes: 20, seconds: 0, color: 'bg-blue-500', category: '학습' },
-    { name: '휴식 15분', minutes: 15, seconds: 0, color: 'bg-green-500', category: '학습' },
-  ],
-};
+interface TimerHistory {
+  id: number;
+  duration: string;
+  completedAt: Date;
+  wasCompleted: boolean;
+}
 
-export default function TimerPage() {
-  const [minutes, setMinutes] = useState(25);
+export default function Timer() {
+  // 타이머 상태
+  const [hours, setHours] = useState(0);
+  const [minutes, setMinutes] = useState(5);
   const [seconds, setSeconds] = useState(0);
-  const [timeLeft, setTimeLeft] = useState(0);
-  const [state, setState] = useState<TimerState>('idle');
-  const [initialTime, setInitialTime] = useState(0);
-  const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [totalSeconds, setTotalSeconds] = useState(0);
+  const [remainingSeconds, setRemainingSeconds] = useState(0);
+  const [isActive, setIsActive] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  
+  // 설정
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [activeCategory, setActiveCategory] = useState('basic');
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  
+  // 프리셋 및 히스토리
+  const [presets, setPresets] = useState<TimerPreset[]>([
+    { id: 1, name: '5분 타이머', hours: 0, minutes: 5, seconds: 0 },
+    { id: 2, name: '10분 타이머', hours: 0, minutes: 10, seconds: 0 },
+    { id: 3, name: '15분 타이머', hours: 0, minutes: 15, seconds: 0 },
+    { id: 4, name: '30분 타이머', hours: 0, minutes: 30, seconds: 0 },
+    { id: 5, name: '1시간 타이머', hours: 1, minutes: 0, seconds: 0 }
+  ]);
+  const [timerHistory, setTimerHistory] = useState<TimerHistory[]>([]);
+  
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  const timerRef = useRef<Timer | null>(null);
-  const soundManagerRef = useRef<SoundManager | null>(null);
-
-  // 관련 도구 가져오기
-  const relatedTools = getRelatedTools('timer').map(tool => ({
-    id: tool.id,
-    name: tool.name.ko,
-    emoji: tool.emoji,
-    href: `/tools/${tool.id}`
-  }));
-
-  // 사운드 매니저 초기화
-  useEffect(() => {
-    soundManagerRef.current = new SoundManager();
-  }, []);
-
-  // localStorage에서 설정 불러오기
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedMinutes = localStorage.getItem('timer-minutes');
-      const savedSeconds = localStorage.getItem('timer-seconds');
-      const savedSoundEnabled = localStorage.getItem('timer-sound-enabled');
-      
-      if (savedMinutes) setMinutes(parseInt(savedMinutes));
-      if (savedSeconds) setSeconds(parseInt(savedSeconds));
-      if (savedSoundEnabled) setSoundEnabled(JSON.parse(savedSoundEnabled));
-    }
-  }, []);
-
-  // 설정을 localStorage에 저장
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('timer-minutes', minutes.toString());
-      localStorage.setItem('timer-seconds', seconds.toString());
-      localStorage.setItem('timer-sound-enabled', JSON.stringify(soundEnabled));
-    }
-  }, [minutes, seconds, soundEnabled]);
-
-  // 타이머 시작
-  const startTimer = () => {
-    const totalSeconds = minutes * 60 + seconds;
-    if (totalSeconds <= 0) return;
-
-    setInitialTime(totalSeconds);
-    setTimeLeft(totalSeconds);
-    setState('running');
-
-    timerRef.current = new Timer(
-      totalSeconds,
-      (timerState) => {
-        setTimeLeft(timerState.timeLeft);
-      },
-      () => {
-        setState('finished');
-        if (soundEnabled) {
-          soundManagerRef.current?.playSuccessSound();
-        }
-      }
-    );
-
-    timerRef.current.start();
+  // 총 초 계산
+  const calculateTotalSeconds = (h: number, m: number, s: number) => {
+    return h * 3600 + m * 60 + s;
   };
 
-  // 타이머 일시정지/재개
-  const togglePause = () => {
-    if (!timerRef.current) return;
+  // 시간 포맷팅
+  const formatTime = (totalSecs: number) => {
+    const h = Math.floor(totalSecs / 3600);
+    const m = Math.floor((totalSecs % 3600) / 60);
+    const s = totalSecs % 60;
+    return {
+      hours: h,
+      minutes: m,
+      seconds: s,
+      display: `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`
+    };
+  };
 
-    if (state === 'running') {
-      timerRef.current.pause();
-      setState('paused');
-    } else if (state === 'paused') {
-      timerRef.current.start();
-      setState('running');
+  // 타이머 로직
+  useEffect(() => {
+    if (isActive && remainingSeconds > 0) {
+      intervalRef.current = setInterval(() => {
+        setRemainingSeconds(prev => {
+          if (prev <= 1) {
+            setIsActive(false);
+            setIsCompleted(true);
+            playAlarm();
+            addToHistory(true);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
     }
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [isActive, remainingSeconds]);
+
+  // 알람 소리
+  const playAlarm = () => {
+    if (typeof window !== 'undefined' && Notification.permission === 'granted') {
+      new Notification('타이머 완료!', {
+        body: '설정한 시간이 완료되었습니다.',
+        icon: '/favicon.ico'
+      });
+    }
+
+    if (soundEnabled) {
+      try {
+        if (typeof window !== 'undefined') {
+          const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+          
+          // 3번 반복하는 알림음
+          for (let i = 0; i < 3; i++) {
+            setTimeout(() => {
+              const oscillator = audioContext.createOscillator();
+              const gainNode = audioContext.createGain();
+              
+              oscillator.connect(gainNode);
+              gainNode.connect(audioContext.destination);
+              
+              oscillator.frequency.value = 880;
+              oscillator.type = 'sine';
+              
+              gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+              gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+              
+              oscillator.start(audioContext.currentTime);
+              oscillator.stop(audioContext.currentTime + 0.5);
+            }, i * 600);
+          }
+        }
+      } catch (error) {
+        console.log('오디오 재생 실패:', error);
+      }
+    }
+  };
+
+  // 타이머 시작/정지
+  const toggleTimer = () => {
+    if (!isActive && remainingSeconds === 0) {
+      // 새로 시작
+      const total = calculateTotalSeconds(hours, minutes, seconds);
+      if (total === 0) {
+        alert('시간을 설정해주세요.');
+        return;
+      }
+      setTotalSeconds(total);
+      setRemainingSeconds(total);
+      setIsCompleted(false);
+    }
+    setIsActive(!isActive);
   };
 
   // 타이머 정지
   const stopTimer = () => {
-    if (timerRef.current) {
-      timerRef.current.stop();
-      timerRef.current = null;
+    setIsActive(false);
+    if (remainingSeconds > 0 && remainingSeconds < totalSeconds) {
+      addToHistory(false);
     }
-    setState('idle');
-    setTimeLeft(0);
+    setRemainingSeconds(0);
+    setTotalSeconds(0);
+    setIsCompleted(false);
   };
 
   // 타이머 리셋
   const resetTimer = () => {
-    stopTimer();
-    setSelectedPreset(null);
+    setIsActive(false);
+    setRemainingSeconds(0);
+    setTotalSeconds(0);
+    setIsCompleted(false);
   };
 
-  // 프리셋 선택
-  const selectPreset = (preset: Preset) => {
+  // 시간 조정
+  const adjustTime = (type: 'hours' | 'minutes' | 'seconds', operation: 'add' | 'subtract') => {
+    if (isActive) return;
+
+    const adjustment = operation === 'add' ? 1 : -1;
+    
+    switch (type) {
+      case 'hours':
+        setHours(Math.max(0, Math.min(23, hours + adjustment)));
+        break;
+      case 'minutes':
+        setMinutes(Math.max(0, Math.min(59, minutes + adjustment)));
+        break;
+      case 'seconds':
+        setSeconds(Math.max(0, Math.min(59, seconds + adjustment)));
+        break;
+    }
+  };
+
+  // 프리셋 적용
+  const applyPreset = (preset: TimerPreset) => {
+    if (isActive) return;
+    
+    setHours(preset.hours);
     setMinutes(preset.minutes);
     setSeconds(preset.seconds);
-    setSelectedPreset(preset.name);
-    if (state !== 'idle') {
-      stopTimer();
-    }
+    setSelectedPreset(preset.id);
   };
 
-  // 시간 입력 파싱
-  const handleTimeInput = (input: string, type: 'minutes' | 'seconds') => {
-    const value = parseInt(input) || 0;
-    if (type === 'minutes') {
-      setMinutes(Math.max(0, Math.min(999, value)));
-    } else {
-      setSeconds(Math.max(0, Math.min(59, value)));
-    }
-    setSelectedPreset(null);
+  // 히스토리에 추가
+  const addToHistory = (completed: boolean) => {
+    const duration = formatTime(totalSeconds).display;
+    const newHistory: TimerHistory = {
+      id: Date.now(),
+      duration,
+      completedAt: new Date(),
+      wasCompleted: completed
+    };
+    
+    setTimerHistory(prev => [newHistory, ...prev.slice(0, 19)]);
   };
 
-  // 진행률 계산
-  const progress = initialTime > 0 ? ((initialTime - timeLeft) / initialTime) * 100 : 0;
-
-  // 상태별 색상
-  const getStateColor = () => {
-    switch (state) {
-      case 'running': return 'text-green-600';
-      case 'paused': return 'text-yellow-600';
-      case 'finished': return 'text-red-600';
-      default: return 'text-gray-600';
+  // 알림 권한 요청
+  useEffect(() => {
+    if (typeof window !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission();
     }
-  };
+  }, []);
+
+  const progress = totalSeconds > 0 ? ((totalSeconds - remainingSeconds) / totalSeconds) * 100 : 0;
+  const currentTime = formatTime(remainingSeconds);
 
   return (
-    <>
-      
-      <ToolLayout
-        title="범용 타이머"
-        description="사용자 지정 시간으로 설정 가능한 범용 타이머"
-        category="productivity"
-        relatedTools={relatedTools}
-      >
-        {/* 타이머 디스플레이 */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center">
-              {/* 시간 표시 */}
-              <div className="mb-8">
-                <div className={`text-6xl md:text-8xl font-mono font-bold ${getStateColor()}`}>
-                  {state === 'idle' ? formatTime(minutes * 60 + seconds) : formatTime(timeLeft)}
+    <div className="min-h-screen bg-gray-900 text-white">
+      {/* Header */}
+      <header className="bg-gray-900 border-b border-gray-800">
+        <div className="container mx-auto px-6 py-4">
+          <div className="flex items-center justify-between">
+            <Link 
+              href="/"
+              className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft className="h-5 w-5" />
+              <span>돌아가기</span>
+            </Link>
+            
+            <h1 className="text-xl font-bold text-white">
+              범용 타이머
+            </h1>
+            
+            <button
+              onClick={() => setSoundEnabled(!soundEnabled)}
+              className={`p-2 rounded-lg transition-colors ${
+                soundEnabled ? 'text-blue-400' : 'text-gray-400'
+              }`}
+            >
+              {soundEnabled ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+            </button>
+          </div>
+        </div>
+      </header>
+
+      {/* 메인 설명 */}
+      <div className="container mx-auto px-6 py-6">
+        <div className="text-center mb-8">
+          <h2 className="text-2xl font-bold mb-2">범용 타이머</h2>
+          <p className="text-gray-400">원하는 시간을 자유롭게 설정할 수 있는 카운트다운 타이머입니다.</p>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* 왼쪽: 메인 타이머 */}
+          <div className="lg:col-span-2">
+            <div className="bg-gray-800 rounded-lg p-8 border border-gray-700">
+              
+              {/* 타이머 표시 */}
+              <div className="text-center mb-8">
+                {isCompleted && (
+                  <div className="mb-4">
+                    <div className="inline-block px-4 py-2 bg-green-500 text-white rounded-full text-sm font-medium">
+                      타이머 완료!
+                    </div>
+                  </div>
+                )}
+                
+                <div className="text-6xl md:text-8xl font-bold font-mono text-white mb-4">
+                  {remainingSeconds > 0 ? currentTime.display : formatTime(calculateTotalSeconds(hours, minutes, seconds)).display}
                 </div>
-                <div className="text-lg text-gray-500 mt-2">
-                  {state === 'idle' && '시작을 기다리고 있습니다'}
-                  {state === 'running' && '타이머가 실행 중입니다'}
-                  {state === 'paused' && '타이머가 일시정지되었습니다'}
-                  {state === 'finished' && '시간이 완료되었습니다!'}
-                </div>
+                
+                {totalSeconds > 0 && (
+                  <div className="text-gray-400 text-lg">
+                    {isActive ? '남은 시간' : isCompleted ? '완료된 시간' : '설정된 시간'}
+                  </div>
+                )}
               </div>
 
               {/* 진행률 바 */}
-              {state !== 'idle' && (
-                <div className="w-full bg-gray-200 rounded-full h-3 mb-6">
-                  <div
-                    className="bg-blue-600 h-3 rounded-full transition-all duration-1000"
-                    style={{ width: `${progress}%` }}
-                  />
+              {totalSeconds > 0 && (
+                <div className="mb-8">
+                  <div className="w-full bg-gray-700 rounded-full h-3">
+                    <div 
+                      className="bg-cyan-500 h-3 rounded-full transition-all duration-1000"
+                      style={{ width: `${progress}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-400 mt-2">
+                    <span>0%</span>
+                    <span>{Math.round(progress)}% 완료</span>
+                    <span>100%</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 시간 설정 */}
+              {!isActive && remainingSeconds === 0 && (
+                <div className="grid grid-cols-3 gap-6 mb-8">
+                  {/* 시간 */}
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-400 mb-3">시간</label>
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        onClick={() => adjustTime('hours', 'add')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Plus className="h-4 w-4 mx-auto" />
+                      </button>
+                      <div className="text-3xl font-bold font-mono bg-gray-700 rounded-lg py-3">
+                        {hours.toString().padStart(2, '0')}
+                      </div>
+                      <button
+                        onClick={() => adjustTime('hours', 'subtract')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Minus className="h-4 w-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 분 */}
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-400 mb-3">분</label>
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        onClick={() => adjustTime('minutes', 'add')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Plus className="h-4 w-4 mx-auto" />
+                      </button>
+                      <div className="text-3xl font-bold font-mono bg-gray-700 rounded-lg py-3">
+                        {minutes.toString().padStart(2, '0')}
+                      </div>
+                      <button
+                        onClick={() => adjustTime('minutes', 'subtract')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Minus className="h-4 w-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* 초 */}
+                  <div className="text-center">
+                    <label className="block text-sm font-medium text-gray-400 mb-3">초</label>
+                    <div className="flex flex-col space-y-2">
+                      <button
+                        onClick={() => adjustTime('seconds', 'add')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Plus className="h-4 w-4 mx-auto" />
+                      </button>
+                      <div className="text-3xl font-bold font-mono bg-gray-700 rounded-lg py-3">
+                        {seconds.toString().padStart(2, '0')}
+                      </div>
+                      <button
+                        onClick={() => adjustTime('seconds', 'subtract')}
+                        className="p-2 bg-gray-600 hover:bg-gray-700 rounded-lg transition-colors"
+                      >
+                        <Minus className="h-4 w-4 mx-auto" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
 
               {/* 컨트롤 버튼 */}
               <div className="flex justify-center space-x-4">
-                {state === 'idle' && (
-                  <Button
-                    onClick={startTimer}
-                    disabled={minutes === 0 && seconds === 0}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 text-lg"
-                  >
-                    <Play className="w-5 h-5 mr-2" />
-                    시작
-                  </Button>
-                )}
+                <button
+                  onClick={toggleTimer}
+                  className={`flex items-center space-x-2 px-8 py-4 rounded-lg font-medium transition-all transform hover:scale-105 ${
+                    isActive
+                      ? 'bg-orange-600 hover:bg-orange-700 text-white'
+                      : 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                  }`}
+                >
+                  {isActive ? <Pause className="h-5 w-5" /> : <Play className="h-5 w-5" />}
+                  <span>{isActive ? '일시정지' : '시작'}</span>
+                </button>
                 
-                {(state === 'running' || state === 'paused') && (
-                  <>
-                    <Button
-                      onClick={togglePause}
-                      className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3"
-                    >
-                      {state === 'running' ? (
-                        <>
-                          <Pause className="w-5 h-5 mr-2" />
-                          일시정지
-                        </>
-                      ) : (
-                        <>
-                          <Play className="w-5 h-5 mr-2" />
-                          재개
-                        </>
-                      )}
-                    </Button>
-                    <Button
-                      onClick={stopTimer}
-                      variant="outline"
-                      className="px-6 py-3"
-                    >
-                      <Square className="w-5 h-5 mr-2" />
-                      정지
-                    </Button>
-                  </>
-                )}
-
-                {state === 'finished' && (
-                  <Button
-                    onClick={resetTimer}
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 text-lg"
-                  >
-                    <RotateCcw className="w-5 h-5 mr-2" />
-                    새로 시작
-                  </Button>
-                )}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* 시간 설정 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between">
-              <span className="flex items-center">
-                <Settings className="w-5 h-5 mr-2" />
-                시간 설정
-              </span>
-              <Button
-                onClick={() => setSoundEnabled(!soundEnabled)}
-                variant="outline"
-                size="sm"
-              >
-                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                <span className="ml-2">{soundEnabled ? '사운드 켜짐' : '사운드 꺼짐'}</span>
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 gap-4 max-w-md mx-auto">
-              <div>
-                <Label htmlFor="minutes">분</Label>
-                <Input
-                  id="minutes"
-                  type="number"
-                  min="0"
-                  max="999"
-                  value={minutes}
-                  onChange={(e) => handleTimeInput(e.target.value, 'minutes')}
-                  disabled={state === 'running'}
-                  className="text-center text-lg"
-                />
-              </div>
-              <div>
-                <Label htmlFor="seconds">초</Label>
-                <Input
-                  id="seconds"
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={seconds}
-                  onChange={(e) => handleTimeInput(e.target.value, 'seconds')}
-                  disabled={state === 'running'}
-                  className="text-center text-lg"
-                />
+                <button
+                  onClick={stopTimer}
+                  disabled={!isActive && remainingSeconds === 0}
+                  className={`flex items-center space-x-2 px-6 py-4 rounded-lg font-medium transition-colors ${
+                    (!isActive && remainingSeconds === 0)
+                      ? 'bg-gray-600 text-gray-400 cursor-not-allowed'
+                      : 'bg-red-600 hover:bg-red-700 text-white'
+                  }`}
+                >
+                  <Square className="h-4 w-4" />
+                  <span>정지</span>
+                </button>
+                
+                <button
+                  onClick={resetTimer}
+                  className="flex items-center space-x-2 px-6 py-4 rounded-lg font-medium bg-gray-600 hover:bg-gray-700 text-white transition-colors"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  <span>리셋</span>
+                </button>
               </div>
             </div>
 
-            {selectedPreset && (
-              <div className="text-center mt-4">
-                <Badge variant="outline" className="text-blue-600">
-                  선택된 프리셋: {selectedPreset}
-                </Badge>
+            {/* 타이머 히스토리 */}
+            {timerHistory.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700 mt-6">
+                <h3 className="text-lg font-bold mb-4">타이머 히스토리</h3>
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {timerHistory.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-3 h-3 rounded-full ${
+                          item.wasCompleted ? 'bg-green-500' : 'bg-orange-500'
+                        }`}></div>
+                        <div>
+                          <div className="text-sm text-white font-mono">{item.duration}</div>
+                          <div className="text-xs text-gray-400">
+                            {item.wasCompleted ? '완료' : '중단'} · {item.completedAt.toLocaleString()}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          const [h, m, s] = item.duration.split(':').map(Number);
+                          setHours(h);
+                          setMinutes(m);
+                          setSeconds(s);
+                        }}
+                        className="text-gray-400 hover:text-white transition-colors text-sm"
+                      >
+                        다시 사용
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
-          </CardContent>
-        </Card>
+          </div>
 
-        {/* 프리셋 타이머 */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Clock className="w-5 h-5 mr-2" />
-              프리셋 타이머
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Tabs value={activeCategory} onValueChange={setActiveCategory} className="w-full">
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic">기본</TabsTrigger>
-                <TabsTrigger value="workout">운동</TabsTrigger>
-                <TabsTrigger value="cooking">요리</TabsTrigger>
-                <TabsTrigger value="study">학습</TabsTrigger>
-              </TabsList>
-              
-              {Object.entries(TIMER_PRESETS).map(([category, presets]) => (
-                <TabsContent key={category} value={category}>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {presets.map((preset) => (
-                      <Button
-                        key={preset.name}
-                        onClick={() => selectPreset(preset)}
-                        variant={selectedPreset === preset.name ? "default" : "outline"}
-                        disabled={state === 'running'}
-                        className="h-auto p-4 flex flex-col items-center"
-                      >
-                        <div className={`w-4 h-4 rounded-full ${preset.color} mb-2`} />
-                        <div className="font-medium">{preset.name}</div>
-                        <div className="text-sm text-gray-500">
-                          {formatTime(preset.minutes * 60 + preset.seconds)}
-                        </div>
-                      </Button>
-                    ))}
-                  </div>
-                </TabsContent>
-              ))}
-            </Tabs>
-          </CardContent>
-        </Card>
-
-        {/* 광고 */}
-        <AdBannerInline />
-
-        {/* 사용법 안내 */}
-        <Card>
-          <CardHeader>
-            <CardTitle>사용법</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold mb-2">⏰ 기본 기능</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 분과 초를 직접 입력하여 타이머 설정</li>
-                  <li>• 프리셋을 선택하여 빠른 설정</li>
-                  <li>• 일시정지 및 재개 기능</li>
-                  <li>• 완료 시 사운드 알림</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold mb-2">💡 활용 팁</h4>
-                <ul className="text-sm text-gray-600 space-y-1">
-                  <li>• 운동 인터벌 트레이닝</li>
-                  <li>• 요리 시간 관리</li>
-                  <li>• 학습 세션 관리</li>
-                  <li>• 휴식 시간 조절</li>
-                </ul>
+          {/* 오른쪽: 프리셋 및 기능 */}
+          <div className="space-y-6">
+            
+            {/* 빠른 프리셋 */}
+            <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <h3 className="text-lg font-bold mb-4">빠른 설정</h3>
+              <div className="space-y-2">
+                {presets.map((preset) => (
+                  <button
+                    key={preset.id}
+                    onClick={() => applyPreset(preset)}
+                    disabled={isActive}
+                    className={`w-full text-left p-3 rounded-lg transition-colors ${
+                      selectedPreset === preset.id
+                        ? 'bg-cyan-600 text-white'
+                        : isActive
+                        ? 'bg-gray-700 text-gray-500 cursor-not-allowed'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
+                    }`}
+                  >
+                    <div className="text-sm text-white">{preset.name}</div>
+                    <div className="text-xs text-gray-400">
+                      {formatTime(calculateTotalSeconds(preset.hours, preset.minutes, preset.seconds)).display}
+                    </div>
+                  </button>
+                ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
-      </ToolLayout>
-    </>
+
+            {/* 통계 */}
+            {timerHistory.length > 0 && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-bold mb-4">통계</h3>
+                <div className="space-y-4">
+                  <div>
+                    <div className="text-2xl font-bold">{timerHistory.length}</div>
+                    <div className="text-gray-400 text-sm">총 타이머 사용</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">{timerHistory.filter(h => h.wasCompleted).length}</div>
+                    <div className="text-gray-400 text-sm">완료된 타이머</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold">
+                      {timerHistory.filter(h => h.wasCompleted).length > 0 
+                        ? Math.round((timerHistory.filter(h => h.wasCompleted).length / timerHistory.length) * 100)
+                        : 0}%
+                    </div>
+                    <div className="text-gray-400 text-sm">완료율</div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 사용 가이드 */}
+            <div className="bg-cyan-900/20 rounded-lg p-6 border border-cyan-800/30">
+              <h3 className="text-lg font-bold mb-4 flex items-center">
+                <Clock className="h-5 w-5 text-cyan-400 mr-2" />
+                사용 가이드
+              </h3>
+              <div className="space-y-2 text-sm text-cyan-300">
+                <div>• +/- 버튼으로 시간을 설정하세요</div>
+                <div>• 빠른 설정에서 자주 사용하는 시간 선택</div>
+                <div>• 타이머 완료 시 알림과 소리로 알려드립니다</div>
+                <div>• 브라우저를 닫아도 백그라운드에서 작동합니다</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }
