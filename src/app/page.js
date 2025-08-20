@@ -762,21 +762,21 @@ export default function HomePage() {
                 
                 {/* 텍스트 링크들 */}
                 <div className="flex items-center space-x-4 text-sm">
-                  <a href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/privacy" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     개인정보 처리방침
-                  </a>
+                  </Link>
                   <span className="text-gray-300 dark:text-gray-600">•</span>
-                  <a href="/terms" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/terms" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     이용약관
-                  </a>
+                  </Link>
                   <span className="text-gray-300 dark:text-gray-600">•</span>
-                  <a href="/contact" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/contact" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     문의하기
-                  </a>
+                  </Link>
                   <span className="text-gray-300 dark:text-gray-600">•</span>
-                  <a href="/sitemap" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
+                  <Link href="/sitemap" className="text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors">
                     사이트맵
-                  </a>
+                  </Link>
                 </div>
 
                 {/* 소셜 아이콘들 */}

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Download, Copy, Check, Youtube, Image, Star, ExternalLink, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Download, Copy, Check, Youtube, Image, Star, Trash2, ExternalLink, AlertCircle } from 'lucide-react';
 
 interface ThumbnailInfo {
   id: string;
@@ -464,9 +464,9 @@ export default function ThumbnailDownloader() {
               </h3>
               <div className="space-y-2 text-sm text-blue-300">
                 <div>1. YouTube 동영상 URL을 복사해서 붙여넣기</div>
-                <div>2. "가져오기" 버튼 클릭 또는 Enter 키</div>
+                <div>2. &quot;가져오기&quot; 버튼 클릭 또는 Enter 키</div>
                 <div>3. 원하는 해상도의 썸네일 선택</div>
-                <div>4. "다운로드" 버튼으로 이미지 저장</div>
+                <div>4. &quot;다운로드&quot; 버튼으로 이미지 저장</div>
               </div>
             </div>
           </div>

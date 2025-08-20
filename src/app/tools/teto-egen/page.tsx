@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, RotateCcw, Heart, Star, Sparkles } from 'lucide-react';
-import { questions, results, type Question, type TestResult } from '@/lib/teto-egen-data';
+import { ArrowLeft, RotateCcw, Share2, Heart, Star, Sparkles } from 'lucide-react';
+import { questions, results, type TestResult } from '@/lib/teto-egen-data';
 
 type Answer = 'T' | 'E'; // T: 테토, E: 에겐
 

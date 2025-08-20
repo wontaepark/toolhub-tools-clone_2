@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, ArrowRight, RotateCcw, CheckCircle } from 'lucide-react';
-import { questions, mbtiResults, type Question, type MBTIResult } from '@/lib/mbti-data';
+import { ArrowLeft, RotateCcw, Share2, CheckCircle } from 'lucide-react';
+import { questions, mbtiResults, type MBTIResult } from '@/lib/mbti-data';
 
 type Answer = 1 | 2 | 3 | 4 | 5; // 1: 전혀 아니다, 5: 매우 그렇다
 
