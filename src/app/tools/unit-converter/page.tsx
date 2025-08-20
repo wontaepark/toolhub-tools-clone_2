@@ -4,8 +4,22 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { ArrowLeft, ArrowUpDown, Star, Ruler, Weight, Thermometer, Droplets, Square, Zap } from 'lucide-react';
 
+// 타입 정의
+interface Unit {
+  name: string;
+  symbol: string;
+  factor: number;
+}
+
+interface UnitCategory {
+  name: string;
+  icon: any;
+  color: string;
+  units: Record<string, Unit>;
+}
+
 // 단위 변환 데이터
-const unitCategories = {
+const unitCategories: Record<string, UnitCategory> = {
   length: {
     name: '길이',
     icon: Ruler,
@@ -104,7 +118,7 @@ export default function UnitConverter() {
   }>>([]);
 
   const currentCategory = unitCategories[selectedCategory];
-  const currentUnits = currentCategory.units;
+  const currentUnits: Record<string, Unit> = currentCategory.units;
 
   // 온도 변환 (특별 처리)
   const convertTemperature = (value: number, from: string, to: string): number => {
@@ -134,8 +148,8 @@ export default function UnitConverter() {
       return convertTemperature(value, from, to);
     }
     
-    const fromFactor = currentUnits[from as keyof typeof currentUnits]?.factor || 1;
-    const toFactor = currentUnits[to as keyof typeof currentUnits]?.factor || 1;
+    const fromFactor = currentUnits[from]?.factor || 1;
+    const toFactor = currentUnits[to]?.factor || 1;
     
     return (value * fromFactor) / toFactor;
   };
@@ -357,8 +371,8 @@ export default function UnitConverter() {
                     <div key={conversion.id} className="flex items-center justify-between p-3 bg-gray-700 rounded-lg">
                       <div className="flex-1">
                         <div className="text-sm text-gray-300">
-                          {conversion.input} {currentUnits[conversion.from as keyof typeof currentUnits]?.symbol} 
-                          → {conversion.output} {currentUnits[conversion.to as keyof typeof currentUnits]?.symbol}
+                                          {conversion.input} {currentUnits[conversion.from]?.symbol}
+                → {conversion.output} {currentUnits[conversion.to]?.symbol}
                         </div>
                         <div className="text-xs text-gray-400 mt-1">
                           {unitCategories[conversion.category as keyof typeof unitCategories]?.name} · 
@@ -476,8 +490,8 @@ export default function UnitConverter() {
                   </div>
                 ) : (
                   <div>
-                    {currentUnits[fromUnit as keyof typeof currentUnits]?.name} →{' '}
-                    {currentUnits[toUnit as keyof typeof currentUnits]?.name}
+                                    {currentUnits[fromUnit]?.name} →{' '}
+                {currentUnits[toUnit]?.name}
                   </div>
                 )}
               </div>
